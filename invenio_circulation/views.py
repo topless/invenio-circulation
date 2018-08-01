@@ -71,36 +71,18 @@ def build_blueprint_with_loan_actions(app):
     options = endpoints.get(pid_type, {})
     if options:
         options = deepcopy(options)
-
+        serializers = {}
         if 'record_serializers' in options:
-            serializers = options.get('record_serializers')
+            rec_serializers = options.get('record_serializers')
             serializers = {mime: obj_or_import_string(func)
-                           for mime, func in serializers.items()}
-        else:
-            serializers = {}
-
-        ctx = dict(
-            read_permission_factory=obj_or_import_string(
-                options.get('read_permission_factory_imp')
-            ),
-            create_permission_factory=obj_or_import_string(
-                options.get('create_permission_factory_imp')
-            ),
-            update_permission_factory=obj_or_import_string(
-                options.get('update_permission_factory_imp')
-            ),
-            delete_permission_factory=obj_or_import_string(
-                options.get('delete_permission_factory_imp')
-            ),
-            links_factory=app.config.get(
-                'CIRCULATION_ACTION_LINKS_FACTORY'
-            ),
-        )
+                           for mime, func in rec_serializers.items()}
 
         loan_actions = LoanActionResource.as_view(
             LoanActionResource.view_name.format(pid_type),
             serializers=serializers,
-            ctx=ctx,
+            ctx=dict(
+                links_factory=app.config.get('CIRCULATION_LOAN_LINKS_FACTORY')
+            ),
         )
 
         distinct_actions = extract_transitions_from_app(app)
@@ -108,6 +90,7 @@ def build_blueprint_with_loan_actions(app):
             options['item_route'],
             ','.join(distinct_actions),
         )
+
         blueprint.add_url_rule(
             url,
             view_func=loan_actions,

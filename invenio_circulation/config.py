@@ -30,7 +30,7 @@ _CIRCULATION_LOAN_FETCHER = 'loan_pid'
 _Loan_PID = 'pid(loan_pid,record_class="invenio_circulation.api:Loan")'
 """."""
 
-_CIRCULATION_ACTION_LINKS_FACTORY = loan_links_factory
+_CIRCULATION_LOAN_LINKS_FACTORY = loan_links_factory
 """."""
 
 
@@ -114,7 +114,7 @@ CIRCULATION_REST_ENDPOINTS = dict(
         list_route='/circulation/loan/',
         item_route='/circulation/loan/<{0}:pid_value>'.format(_Loan_PID),
         default_media_type='application/json',
-        links_factory_imp=_CIRCULATION_ACTION_LINKS_FACTORY,
+        links_factory_imp=_CIRCULATION_LOAN_LINKS_FACTORY,
         max_result_window=10000,
         error_handlers=dict(),
     ),
