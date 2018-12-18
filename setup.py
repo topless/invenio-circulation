@@ -24,9 +24,9 @@ tests_require = [
     'mock>=1.3.0',
     'pydocstyle>=1.0.0',
     'pytest-cache>=1.0',
-    'pytest-cov>=1.8.0',
+    'pytest-cov>=2.6.0',
     'pytest-pep8>=1.0.6',
-    'pytest>=3.3.0',
+    'pytest>=3.7',
     'pytest-invenio>=1.0.2',
 ]
 
@@ -134,6 +134,9 @@ setup(
             'loans = invenio_circulation.schemas'
         ],
         'invenio_search.mappings': ['loans = invenio_circulation.mappings'],
+        "invenio_records.jsonresolver": [
+            "ils_item = invenio_circulation.records.jsonresolver.item",
+        ],
     },
     extras_require=extras_require,
     install_requires=install_requires,

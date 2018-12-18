@@ -28,9 +28,14 @@ def is_item_available(item_pid):
     return True
 
 
+def item_resolver(item_pid):
+    """Return the item record for the passed item pid."""
+    return ""
+
+
 def item_location_retriever(item_pid):
     """Retrieve the location pid of the passed item pid."""
-    return ''
+    return ""
 
 
 def get_default_loan_duration(loan):
@@ -50,8 +55,9 @@ def get_default_extension_max_count(loan):
 
 def is_loan_duration_valid(loan):
     """Validate the loan duration."""
-    return loan['end_date'] > loan['start_date'] and \
-        loan['end_date'] - loan['start_date'] < timedelta(days=60)
+    return loan["end_date"] > loan["start_date"] and loan["end_date"] - loan[
+        "start_date"
+    ] < timedelta(days=60)
 
 
 def parse_date(str_date):

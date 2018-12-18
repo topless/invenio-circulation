@@ -33,6 +33,10 @@ class Loan(Record):
     def create(cls, data, id_=None, **kwargs):
         """Create Loan record."""
         data["$schema"] = current_jsonschemas.path_to_url(cls._schema)
+        if current_app.config.get("CIRCULATION_ITEM_REF_BUILDER"):
+            data["item"] = current_app.config["CIRCULATION_ITEM_REF_BUILDER"](
+                data["item_pid"]
+            )
         return super(Loan, cls).create(data, id_=id_, **kwargs)
 
     @classmethod
@@ -56,8 +60,10 @@ def is_item_available(item_pid):
     if not cfg_item_available(item_pid):
         return False
 
-    search = search_by_pid(item_pid=item_pid, filter_states=config.get(
-        "CIRCULATION_STATES_LOAN_ACTIVE"))
+    search = search_by_pid(
+        item_pid=item_pid,
+        filter_states=config.get("CIRCULATION_STATES_LOAN_ACTIVE"),
+    )
     return search.execute().hits.total == 0
 
 
@@ -106,14 +112,15 @@ def get_loan_for_item(item_pid):
 
     search = search_by_pid(
         item_pid=item_pid,
-        filter_states=current_app.config["CIRCULATION_STATES_LOAN_ACTIVE"]
+        filter_states=current_app.config["CIRCULATION_STATES_LOAN_ACTIVE"],
     )
 
     hits = list(search.scan())
     if hits:
         if len(hits) > 1:
             raise MultipleLoansOnItemError(
-                "Multiple active loans on item {0}".format(item_pid))
+                "Multiple active loans on item {0}".format(item_pid)
+            )
 
         loan = Loan.get_record_by_pid(hits[0][Loan.pid_field])
     return loan
@@ -125,11 +132,11 @@ def patron_has_active_loan_on_item(patron_pid, item_pid):
     if not patron_pid or not item_pid:
         raise CirculationException("Patron PID or Item PID not specified")
 
+    states = ["CREATED", "PENDING"] + config["CIRCULATION_STATES_LOAN_ACTIVE"]
     search = search_by_patron_item(
         patron_pid=patron_pid,
         item_pid=item_pid,
-        filter_states=['CREATED', 'PENDING'] +
-        config["CIRCULATION_STATES_LOAN_ACTIVE"]
+        filter_states=states,
     )
     search_result = search.execute()
     return search_result.hits.total > 0

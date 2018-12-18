@@ -24,7 +24,7 @@ from .transitions.transitions import CreatedToPending, \
 from .utils import get_default_extension_duration, \
     get_default_extension_max_count, get_default_loan_duration, \
     is_item_available, is_loan_duration_valid, item_exists, \
-    item_location_retriever, patron_exists
+    item_location_retriever, item_resolver, patron_exists
 
 CIRCULATION_ITEMS_RETRIEVER_FROM_DOCUMENT = None
 """Function that returns a list of item PIDs given a Document PID."""
@@ -92,8 +92,17 @@ CIRCULATION_PATRON_EXISTS = patron_exists
 CIRCULATION_ITEM_EXISTS = item_exists
 """Function that returns True if the given Item exists."""
 
+CIRCULATION_ITEM_REF_BUILDER = None
+"""Function that builds $ref to an `Item` record."""
+
 CIRCULATION_ITEM_LOCATION_RETRIEVER = item_location_retriever
 """Function that returns the Location PID of the given Item."""
+
+CIRCULATION_ITEM_RESOLVING_PATH = ""
+"""Path to use for the resolving of the item ref."""
+
+CIRCULATION_ITEM_RESOLVER_ENDPOINT = None
+"""Flask endpoint function to handle the item resolving."""
 
 CIRCULATION_POLICIES = dict(
     checkout=dict(

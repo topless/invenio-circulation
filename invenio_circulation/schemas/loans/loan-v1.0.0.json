@@ -82,6 +82,14 @@
     "trigger": {
       "type": "string",
       "title": "The name of the explicit action that triggered the transition to current state"
+    },
+    "item": {
+      "type": "object",
+      "properties": {
+        "$ref": {
+          "type": "string"
+        }
+      }
     }
   }
 }
