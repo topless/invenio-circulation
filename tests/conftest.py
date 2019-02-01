@@ -29,9 +29,13 @@ from invenio_circulation.permissions import loan_access
 from invenio_circulation.pidstore.minters import loan_pid_minter
 
 from .helpers import create_loan, test_views_permissions_factory
+from .utils import get_default_extension_duration, \
+    get_default_extension_max_count, get_default_loan_duration, \
+    is_item_available, is_loan_duration_valid, item_exists, \
+    item_location_retriever, item_ref_builder, patron_exists
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def create_app():
     """Return API app."""
     return create_api
@@ -43,8 +47,22 @@ def app_config(app_config):
     app_config["JSONSCHEMAS_ENDPOINT"] = "/schema"
     app_config["JSONSCHEMAS_HOST"] = "localhost:5000"
     app_config["RECORDS_REST_DEFAULT_READ_PERMISSION_FACTORY"] = allow_all
-    app_config["CIRCULATION_ITEM_EXISTS"] = lambda x: True
-    app_config["CIRCULATION_PATRON_EXISTS"] = lambda x: True
+    app_config["CIRCULATION_ITEM_EXISTS"] = item_exists
+    app_config["CIRCULATION_PATRON_EXISTS"] = patron_exists
+    app_config["CIRCULATION_ITEM_REF_BUILDER"] = item_ref_builder
+    app_config["CIRCULATION_ITEM_LOCATION_RETRIEVER"] = item_location_retriever
+    app_config["CIRCULATION_POLICIES"] = dict(
+        checkout=dict(
+            duration_default=get_default_loan_duration,
+            duration_validate=is_loan_duration_valid,
+            item_available=is_item_available,
+        ),
+        extension=dict(
+            from_end_date=True,
+            duration_default=get_default_extension_duration,
+            max_count=get_default_extension_max_count,
+        ),
+    )
     return app_config
 
 
@@ -126,34 +144,36 @@ def mock_is_item_available():
 @pytest.fixture()
 def users(db, base_app):
     """Create admin, manager and user."""
-    base_app.config["CIRCULATION_VIEWS_PERMISSIONS_FACTORY"] = \
-        test_views_permissions_factory
+    base_app.config[
+        "CIRCULATION_VIEWS_PERMISSIONS_FACTORY"
+    ] = test_views_permissions_factory
 
     with db.session.begin_nested():
-        datastore = base_app.extensions['security'].datastore
+        datastore = base_app.extensions["security"].datastore
 
         # create users
-        manager = datastore.create_user(email='manager@test.com',
-                                        password='123456', active=True)
-        admin = datastore.create_user(email='admin@test.com',
-                                      password='123456', active=True)
-        user = datastore.create_user(email='user@test.com',
-                                     password='123456', active=True)
+        manager = datastore.create_user(
+            email="manager@test.com", password="123456", active=True
+        )
+        admin = datastore.create_user(
+            email="admin@test.com", password="123456", active=True
+        )
+        user = datastore.create_user(
+            email="user@test.com", password="123456", active=True
+        )
 
         # Give role to admin
-        admin_role = Role(name='admin')
-        db.session.add(ActionRoles(action=superuser_access.value,
-                                   role=admin_role))
+        admin_role = Role(name="admin")
+        db.session.add(
+            ActionRoles(action=superuser_access.value, role=admin_role)
+        )
         datastore.add_role_to_user(admin, admin_role)
         # Give role to user
-        manager_role = Role(name='manager')
-        db.session.add(ActionRoles(action=loan_access.value,
-                                   role=manager_role))
+        manager_role = Role(name="manager")
+        db.session.add(
+            ActionRoles(action=loan_access.value, role=manager_role)
+        )
         datastore.add_role_to_user(manager, manager_role)
     db.session.commit()
 
-    return {
-        'admin': admin,
-        'manager': manager,
-        'user': user,
-    }
+    return {"admin": admin, "manager": manager, "user": user}

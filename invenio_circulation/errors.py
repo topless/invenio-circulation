@@ -47,3 +47,7 @@ class TransitionConstraintsViolation(CirculationException):
 
 class MultipleLoansOnItemError(CirculationException):
     """Exception raised when more than one loan on an item."""
+
+
+class NotImplementedError(CirculationException):
+    """Exception raised when more than one loan on an item."""
