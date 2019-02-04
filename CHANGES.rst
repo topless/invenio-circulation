@@ -7,6 +7,11 @@
 Changes
 =======
 
+Version 1.0.0a6 (released 2019-02-04)
+
+- Force user to implement configuration utils functions instead of returning a
+  dummy value.
+
 Version 1.0.0a5 (released 2019-01-28)
 
 - Add config for defining loan `completed` state.
