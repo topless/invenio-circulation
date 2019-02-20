@@ -67,7 +67,8 @@ def _ensure_valid_extension(loan):
 
     extension_count = loan.get('extension_count', 0)
     extension_count += 1
-    if extension_count > extension_max_count + 1:
+
+    if extension_count > extension_max_count:
         msg = 'Max extension count reached `{0}`'.format(extension_max_count)
         raise TransitionConstraintsViolation(msg=msg)
 

@@ -8,7 +8,6 @@
 
 """Circulation API."""
 
-from datetime import timedelta
 
 import ciso8601
 

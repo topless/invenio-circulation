@@ -73,14 +73,30 @@ def test_loan_request(loan_created, db, params):
 
 def test_loan_extend(loan_created, db, params, mock_is_item_available):
     """Test loan extend action."""
-    def get_max_count_1(loan):
-        return 1
-
     loan = current_circulation.circulation.trigger(
         loan_created, **dict(params, trigger="checkout")
     )
     db.session.commit()
     end_date = parse_date(loan["end_date"])
+
+    def get_max_count_0(loan):
+        return 0
+
+    current_app.config["CIRCULATION_POLICIES"]["extension"][
+        "max_count"
+    ] = get_max_count_0
+
+    with pytest.raises(TransitionConstraintsViolation):
+        loan = current_circulation.circulation.trigger(
+            loan, **dict(params, trigger="extend")
+        )
+
+    def get_max_count_2(loan):
+        return 2
+
+    current_app.config["CIRCULATION_POLICIES"]["extension"][
+        "max_count"
+    ] = get_max_count_2
 
     loan = current_circulation.circulation.trigger(
         loan, **dict(params, trigger="extend")
@@ -89,15 +105,13 @@ def test_loan_extend(loan_created, db, params, mock_is_item_available):
     new_end_date = parse_date(loan["end_date"])
     assert new_end_date == end_date + timedelta(days=30)
     assert loan["extension_count"] == 1
+
     loan = current_circulation.circulation.trigger(
         loan, **dict(params, trigger="extend")
     )
     db.session.commit()
 
-    # test to manny extensions
-    current_app.config["CIRCULATION_POLICIES"]["extension"][
-        "max_count"
-    ] = get_max_count_1
+    # test too many extensions
     with pytest.raises(TransitionConstraintsViolation):
         loan = current_circulation.circulation.trigger(
             loan, **dict(params, trigger="extend")
