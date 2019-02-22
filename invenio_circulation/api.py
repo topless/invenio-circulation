@@ -37,7 +37,7 @@ class Loan(Record):
         item_attached = data.get("item_pid") and data["item_pid"] != ""
         if ref_builder and item_attached:
             data["item"] = current_app.config["CIRCULATION_ITEM_REF_BUILDER"](
-                data["item_pid"]
+                data["loan_pid"]
             )
         return super(Loan, cls).create(data, id_=id_, **kwargs)
 

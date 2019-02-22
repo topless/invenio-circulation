@@ -33,7 +33,7 @@ def item_exists(item_pid):
 
 
 # NOTE: Its on purpose `ref` and not `$ref` so it doesn't try to resolve
-def item_ref_builder(item_pid):
+def item_ref_builder(loan_pid):
     """Return the $ref for item_pid."""
     raise NotImplementedError(
         "Function is not implemented. \
