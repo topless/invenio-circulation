@@ -26,6 +26,11 @@ def is_item_available(item_pid):
     return True
 
 
+def can_be_requested(item_pid=None, document_pid=None):
+    """Return if record can be requested."""
+    return True
+
+
 # NOTE: Its on purpose `ref` and not `$ref` so it doesn't try to resolve
 def item_ref_builder(item_pid):
     """Return the $ref for item_pid."""

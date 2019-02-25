@@ -34,7 +34,8 @@ def test_should_fail_when_item_not_exist(loan_created, params):
             )
 
 
-def test_should_fail_when_item_is_changed(loan_created, db, params):
+def test_should_fail_when_item_is_changed(
+        loan_created, db, params, mock_can_be_requested):
     """Test that constraints fail if item for an existing loan is changed."""
     with SwappedConfig(
         "CIRCULATION_ITEM_LOCATION_RETRIEVER", lambda x: "pickup_location_pid"
@@ -58,7 +59,8 @@ def test_should_fail_when_patron_not_exist(loan_created, params):
             )
 
 
-def test_should_fail_when_patron_is_changed(loan_created, db, params):
+def test_should_fail_when_patron_is_changed(
+        loan_created, db, params, mock_can_be_requested):
     """Test that constraints fail if patron for an existing loan is changed."""
     with SwappedConfig(
         "CIRCULATION_ITEM_LOCATION_RETRIEVER", lambda x: "pickup_location_pid"

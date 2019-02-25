@@ -148,6 +148,8 @@ class CreatedToPending(Transition):
         """Set a default pickup location if not passed as param."""
         super(CreatedToPending, self).before(loan, **kwargs)
 
+        self.ensure_record_can_request(loan)
+
         # set pickup location to item location if not passed as default
         if not loan.get('pickup_location_pid'):
             item_location_pid = current_app.config[

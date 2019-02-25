@@ -17,7 +17,8 @@ from flask_security import login_user
 
 from invenio_circulation.api import Loan, is_item_available
 from invenio_circulation.errors import ItemNotAvailable, \
-    NoValidTransitionAvailable, TransitionConstraintsViolation
+    NoValidTransitionAvailable, RecordCannotBeRequested, \
+    TransitionConstraintsViolation
 from invenio_circulation.proxies import current_circulation
 from invenio_circulation.utils import parse_date
 
@@ -34,6 +35,7 @@ def test_loan_checkout_checkin(
     db,
     params,
     mock_is_item_available,
+    mock_can_be_requested
 ):
     """Test loan checkout and checkin actions."""
     mock_pending_loans_for_document.return_value = []
@@ -55,7 +57,7 @@ def test_loan_checkout_checkin(
         assert loan["state"] == "ITEM_RETURNED"
 
 
-def test_loan_request(loan_created, db, params):
+def test_loan_request(loan_created, db, params, mock_can_be_requested):
     """Test loan request action."""
     assert loan_created["state"] == "CREATED"
 
@@ -71,7 +73,9 @@ def test_loan_request(loan_created, db, params):
     assert loan["state"] == "PENDING"
 
 
-def test_loan_extend(loan_created, db, params, mock_is_item_available):
+def test_loan_extend(
+        loan_created,
+        db, params, mock_is_item_available, mock_can_be_requested):
     """Test loan extend action."""
     loan = current_circulation.circulation.trigger(
         loan_created, **dict(params, trigger="checkout")
@@ -119,7 +123,7 @@ def test_loan_extend(loan_created, db, params, mock_is_item_available):
 
 
 def test_loan_extend_from_enddate(
-    loan_created, db, params, mock_is_item_available
+    loan_created, db, params, mock_is_item_available, mock_can_be_requested
 ):
     """Test loan extend action from transaction date."""
     loan = current_circulation.circulation.trigger(
@@ -140,7 +144,9 @@ def test_loan_extend_from_enddate(
     assert loan["extension_count"] == 1
 
 
-def test_cancel_action(loan_created, db, params, mock_is_item_available):
+def test_cancel_action(
+        loan_created,
+        db, params, mock_is_item_available, mock_can_be_requested):
     """Test should pass when calling `cancel` from `ITEM_ON_LOAN`."""
     loan = current_circulation.circulation.trigger(
         loan_created, **dict(params, trigger="checkout")
@@ -161,7 +167,8 @@ def test_cancel_fail(loan_created, params):
         )
 
 
-def test_validate_item_in_transit_for_pickup(loan_created, db, params):
+def test_validate_item_in_transit_for_pickup(
+        loan_created, db, params, mock_can_be_requested):
     """."""
     loan = current_circulation.circulation.trigger(
         loan_created,
@@ -182,7 +189,8 @@ def test_validate_item_in_transit_for_pickup(loan_created, db, params):
         assert loan["state"] == "ITEM_IN_TRANSIT_FOR_PICKUP"
 
 
-def test_validate_item_at_desk(loan_created, db, params):
+def test_validate_item_at_desk(
+        loan_created, db, params, mock_can_be_requested):
     """."""
     loan = current_circulation.circulation.trigger(
         loan_created,
@@ -205,7 +213,7 @@ def test_validate_item_at_desk(loan_created, db, params):
 
 
 def test_checkout_start_is_transaction_date(
-    loan_created, db, params, mock_is_item_available
+    loan_created, db, params, mock_is_item_available, mock_can_be_requested
 ):
     """Test checkout start date to transaction date when not set."""
     number_of_days = 10
@@ -227,7 +235,7 @@ def test_checkout_start_is_transaction_date(
 
 
 def test_checkout_with_input_start_end_dates(
-    loan_created, db, params, mock_is_item_available
+    loan_created, db, params, mock_is_item_available, mock_can_be_requested
 ):
     """Test checkout start and end dates are set as input."""
     start_date = "2018-02-01T09:30:00+02:00"
@@ -248,7 +256,7 @@ def test_checkout_with_input_start_end_dates(
 
 
 def test_checkout_fails_when_wrong_dates(
-    loan_created, params, mock_is_item_available
+    loan_created, params, mock_is_item_available, mock_can_be_requested
 ):
     """Test checkout fails when wrong input dates."""
     with pytest.raises(ValueError):
@@ -264,7 +272,7 @@ def test_checkout_fails_when_wrong_dates(
 
 
 def test_checkout_fails_when_duration_invalid(
-    loan_created, params, mock_is_item_available
+    loan_created, params, mock_is_item_available, mock_can_be_requested
 ):
     """Test checkout fails when wrong max duration."""
     with pytest.raises(TransitionConstraintsViolation):
@@ -293,6 +301,7 @@ def test_checkin_end_date_is_transaction_date(
     db,
     params,
     mock_is_item_available,
+    mock_can_be_requested
 ):
     """Test date the checkin date is the transaction date."""
     mock_pending_loans_for_document.return_value = []
@@ -331,7 +340,7 @@ def test_item_availability(indexed_loans):
 
 
 def test_checkout_on_unavailable_item(
-    loan_created, db, params, mock_is_item_available
+    loan_created, db, params, mock_is_item_available, mock_can_be_requested
 ):
     """Test checkout fails on unvailable item."""
     mock_is_item_available.return_value = False
@@ -369,7 +378,7 @@ def _loan_steps_created_to_on_loan(loan_created, params):
 
 
 def test_checkout_item(loan_created, db, params,
-                       users, app):
+                       users, app, mock_can_be_requested):
     """Test standard checkout procedure."""
     login_user(users['user'])
     # set specific loan owner
@@ -378,7 +387,7 @@ def test_checkout_item(loan_created, db, params,
 
 
 def test_checkout_item_unavailable_steps(loan_created, db, params,
-                                         users, app):
+                                         users, app, mock_can_be_requested):
     """Test checkout attempt on unavailable item."""
     user = users['manager']
     login_user(user)
@@ -406,7 +415,7 @@ def test_checkout_item_unavailable_steps(loan_created, db, params,
 
 @mock.patch("invenio_circulation.api.is_item_available")
 def test_request_on_document_with_available_items(
-    mock_available_item, loan_created, db, params
+    mock_available_item, loan_created, db, params, mock_can_be_requested
 ):
     """Test loan request action."""
     mock_available_item.return_value = True
@@ -431,7 +440,7 @@ def test_request_on_document_with_available_items(
 
 @mock.patch("invenio_circulation.api.is_item_available")
 def test_request_on_document_with_unavailable_items(
-    mock_available_item, loan_created, db, params
+    mock_available_item, loan_created, db, params, mock_can_be_requested
 ):
     """Test loan request action."""
     mock_available_item.return_value = False
@@ -467,6 +476,7 @@ def test_document_requests_on_item_returned(
     loan_created,
     db,
     params,
+    mock_can_be_requested
 ):
     """Test loan request action."""
 
@@ -533,3 +543,34 @@ def test_document_requests_on_item_returned(
             assert pending_loan["state"] == "PENDING"
             assert pending_loan["item_pid"] == "item_pid"
             assert pending_loan["document_pid"] == "document_pid"
+
+
+def test_loan_deny_item_request(
+        loan_created, db, params, mock_can_not_be_requested):
+    """Test loan item request action."""
+
+    with pytest.raises(RecordCannotBeRequested):
+        current_circulation.circulation.trigger(
+            loan_created,
+            **dict(
+                params,
+                trigger="request",
+                pickup_location_pid="pickup_location_pid",
+            )
+        )
+
+
+def test_loan_deny_document_request(
+        loan_created, db, params, mock_can_not_be_requested):
+    """Test loan document request action."""
+    del params['item_pid']
+    params['document_pid'] = 'document_pid'
+    with pytest.raises(RecordCannotBeRequested):
+        current_circulation.circulation.trigger(
+            loan_created,
+            **dict(
+                params,
+                trigger="request",
+                pickup_location_pid="pickup_location_pid",
+            )
+        )

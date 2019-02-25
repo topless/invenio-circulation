@@ -60,6 +60,16 @@ def is_item_available(item_pid):
     )
 
 
+def can_be_requested(item_pid=None, document_pid=None):
+    """Return if record can be requested."""
+    raise NotImplementedError(
+        "Function is not implemented. \
+        Implement this function in your module and pass it to \
+        the config variable \
+        `CIRCULATION_POLICIES.request.can_request`"
+    )
+
+
 def get_default_loan_duration(loan):
     """Return a default loan duration in number of days."""
     raise NotImplementedError(

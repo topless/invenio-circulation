@@ -21,7 +21,7 @@ from .transitions.transitions import CreatedToPending, \
     ItemOnLoanToItemInTransitHouse, ItemOnLoanToItemOnLoan, \
     ItemOnLoanToItemReturned, PendingToItemAtDesk, \
     PendingToItemInTransitPickup, ToItemOnLoan
-from .utils import get_default_extension_duration, \
+from .utils import can_be_requested, get_default_extension_duration, \
     get_default_extension_max_count, get_default_loan_duration, \
     is_item_available, is_loan_duration_valid, item_exists, \
     item_location_retriever, item_ref_builder, patron_exists
@@ -120,6 +120,9 @@ CIRCULATION_POLICIES = dict(
         from_end_date=True,
         duration_default=get_default_extension_duration,
         max_count=get_default_extension_max_count
+    ),
+    request=dict(
+        can_request=can_be_requested
     ),
 )
 """Default circulation policies when performing an action on a Loan."""

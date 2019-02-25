@@ -29,7 +29,7 @@ from invenio_circulation.permissions import loan_access
 from invenio_circulation.pidstore.minters import loan_pid_minter
 
 from .helpers import create_loan, test_views_permissions_factory
-from .utils import get_default_extension_duration, \
+from .utils import can_be_requested, get_default_extension_duration, \
     get_default_extension_max_count, get_default_loan_duration, \
     is_item_available, is_loan_duration_valid, item_exists, \
     item_location_retriever, item_ref_builder, patron_exists
@@ -62,6 +62,9 @@ def app_config(app_config):
             duration_default=get_default_extension_duration,
             max_count=get_default_extension_max_count,
         ),
+        request=dict(
+            can_request=can_be_requested
+        )
     )
     return app_config
 
@@ -139,6 +142,24 @@ def mock_is_item_available():
     with mock.patch(path) as mock_is_item_available:
         mock_is_item_available.return_value = True
         yield mock_is_item_available
+
+
+@pytest.fixture()
+def mock_can_be_requested():
+    """Mock can_be_requested check."""
+    path = "invenio_circulation.transitions.base.can_be_requested"
+    with mock.patch(path) as mock_is_can_request:
+        mock_is_can_request.return_value = True
+        yield mock_is_can_request
+
+
+@pytest.fixture()
+def mock_can_not_be_requested():
+    """Mock can_be_requested check."""
+    path = "invenio_circulation.transitions.base.can_be_requested"
+    with mock.patch(path) as mock_is_can_request:
+        mock_is_can_request.return_value = False
+        yield mock_is_can_request
 
 
 @pytest.fixture()

@@ -25,6 +25,10 @@ class ItemNotAvailable(CirculationException):
     """Exception raised from action on unavailable item."""
 
 
+class RecordCannotBeRequested(CirculationException):
+    """Exception raised when item can not be requested."""
+
+
 class TransitionConditionsFailed(CirculationException):
     """Conditions for the transition failed at loan state."""
 

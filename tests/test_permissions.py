@@ -16,7 +16,7 @@ from invenio_circulation.errors import InvalidCirculationPermission
 from invenio_circulation.transitions.transitions import CreatedToPending
 
 
-def test_valid_permission(loan_created, params):
+def test_valid_permission(loan_created, params, mock_can_be_requested):
     """Test transition with valid permission."""
     transition = CreatedToPending(
         'CREATED', 'PENDING', trigger='next', permission_factory=allow_all
