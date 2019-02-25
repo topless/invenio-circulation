@@ -7,6 +7,10 @@
 Changes
 =======
 
+Version 1.0.0a7 (released 2019-02-25)
+
+- Replace item_pid with loan_pid in $ref Loan schema.
+
 Version 1.0.0a6 (released 2019-02-04)
 
 - Force user to implement configuration utils functions instead of returning a
