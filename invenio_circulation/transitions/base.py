@@ -15,11 +15,11 @@ from invenio_db import db
 
 from ..api import is_item_available
 from ..errors import InvalidCirculationPermission, InvalidState, \
-    ItemNotAvailable, RecordCannotBeRequested, TransitionConditionsFailed, \
+    ItemNotAvailable, TransitionConditionsFailed, \
     TransitionConstraintsViolation
 from ..proxies import current_circulation
 from ..signals import loan_state_changed
-from ..utils import can_be_requested, parse_date
+from ..utils import parse_date
 
 
 def ensure_same_item_patron(f):
@@ -111,16 +111,6 @@ class Transition(object):
             msg = 'Invalid transition to {0}: Item {1} is unavailable.'\
                 .format(self.dest, loan['item_pid'])
             raise ItemNotAvailable(msg)
-
-    def ensure_record_can_request(self, loan):
-        """Validate that a request can be made on record."""
-        if not can_be_requested(
-                item_pid=loan.get('item_pid'),
-                document_pid=loan.get('document_pid')):
-            msg = 'Invalid transition to {0}: document {1} \
-                can not be requested.'\
-                .format(self.dest, loan.get('document_pid'))
-            raise RecordCannotBeRequested(msg)
 
     def validate_transition_states(self):
         """Ensure that source and destination states are valid."""

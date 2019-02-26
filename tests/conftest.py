@@ -145,21 +145,17 @@ def mock_is_item_available():
 
 
 @pytest.fixture()
-def mock_can_be_requested():
+def mock_can_be_requested(base_app):
     """Mock can_be_requested check."""
-    path = "invenio_circulation.transitions.base.can_be_requested"
-    with mock.patch(path) as mock_is_can_request:
-        mock_is_can_request.return_value = True
-        yield mock_is_can_request
+    base_app.config["CIRCULATION_POLICIES"]["request"]["can_request"] = \
+        lambda item_pid=None, document_pid=None: True
 
 
 @pytest.fixture()
-def mock_can_not_be_requested():
+def mock_can_not_be_requested(base_app):
     """Mock can_be_requested check."""
-    path = "invenio_circulation.transitions.base.can_be_requested"
-    with mock.patch(path) as mock_is_can_request:
-        mock_is_can_request.return_value = False
-        yield mock_is_can_request
+    base_app.config["CIRCULATION_POLICIES"]["request"]["can_request"] = \
+        lambda item_pid=None, document_pid=None: False
 
 
 @pytest.fixture()

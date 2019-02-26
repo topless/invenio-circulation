@@ -14,8 +14,10 @@ from flask import current_app
 from invenio_db import db
 
 from ..api import get_available_item_by_doc_pid, get_document_by_item_pid, \
-    get_pending_loans_by_doc_pid
-from ..errors import TransitionConditionsFailed, TransitionConstraintsViolation
+    get_pending_loans_by_doc_pid, is_document_can_request, \
+    is_item_can_request
+from ..errors import RecordCannotBeRequested, TransitionConditionsFailed, \
+    TransitionConstraintsViolation
 from ..transitions.base import Transition
 from ..transitions.conditions import is_same_location
 from ..utils import parse_date
@@ -135,6 +137,13 @@ class CreatedToPending(Transition):
         def inner(self, loan, **kwargs):
             document_pid = kwargs.get('document_pid')
             if document_pid and not kwargs.get('item_pid'):
+
+                if not is_document_can_request(loan.get('document_pid')):
+                    msg = 'Invalid transition to {0}: document {1} \
+                        can not be requested.'\
+                        .format(self.dest, loan.get('document_pid'))
+                    raise RecordCannotBeRequested(msg=msg)
+
                 available_item_pid = get_available_item_by_doc_pid(
                     document_pid
                 )
@@ -148,7 +157,11 @@ class CreatedToPending(Transition):
         """Set a default pickup location if not passed as param."""
         super(CreatedToPending, self).before(loan, **kwargs)
 
-        self.ensure_record_can_request(loan)
+        if not is_item_can_request(loan.get('item_pid')):
+            msg = 'Invalid transition to {0}: item {1} \
+                can not be requested.'\
+                .format(self.dest, loan.get('item_pid'))
+            raise RecordCannotBeRequested(msg=msg)
 
         # set pickup location to item location if not passed as default
         if not loan.get('pickup_location_pid'):

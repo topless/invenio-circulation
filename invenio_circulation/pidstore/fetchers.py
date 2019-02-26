@@ -10,8 +10,8 @@
 
 from invenio_pidstore.fetchers import FetchedPID
 
-from ..api import Loan
 from .pids import CIRCULATION_LOAN_PID_TYPE
+from ..api import Loan
 
 
 def loan_pid_fetcher(record_uuid, data):
