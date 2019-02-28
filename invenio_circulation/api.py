@@ -69,22 +69,13 @@ def is_item_available(item_pid):
     return search.execute().hits.total == 0
 
 
-def is_item_can_request(item_pid):
-    """Return True if the given item can be requested, False otherwise."""
+def can_be_requested(loan):
+    """Return True if the given record can be requested, False otherwise."""
     config = current_app.config
-    cfg_item_can_request = \
-        config["CIRCULATION_POLICIES"]["request"]["can_request"]
-
-    return cfg_item_can_request(item_pid=item_pid)
-
-
-def is_document_can_request(document_pid):
-    """Return True if the given document can be requested, False otherwise."""
-    config = current_app.config
-    cfg_document_can_request = \
-        config["CIRCULATION_POLICIES"]["request"]["can_request"]
-
-    return cfg_document_can_request(document_pid=document_pid)
+    cfg_can_be_requested = config["CIRCULATION_POLICIES"]["request"].get(
+        "can_be_requested"
+    )
+    return cfg_can_be_requested(loan)
 
 
 def get_pending_loans_by_item_pid(item_pid):

@@ -52,7 +52,9 @@ def test_loan_replace_item_inactive_state(
     )
 
 
-def test_loan_replace_item_wo_params(app, json_headers, params, indexed_loans):
+def test_loan_replace_item_wo_params(
+    app, json_headers, params, indexed_loans
+):
     """Test that no Loan is returned for the given Item if only pendings."""
     item_pid = "item_on_loan_2"
     loan = get_loan_for_item(item_pid)

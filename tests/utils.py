@@ -26,8 +26,8 @@ def is_item_available(item_pid):
     return True
 
 
-def can_be_requested(item_pid=None, document_pid=None):
-    """Return if record can be requested."""
+def can_be_requested(loan):
+    """Return True if the given record can be requested, False otherwise."""
     return True
 
 

@@ -122,7 +122,7 @@ CIRCULATION_POLICIES = dict(
         max_count=get_default_extension_max_count
     ),
     request=dict(
-        can_request=can_be_requested
+        can_be_requested=can_be_requested
     ),
 )
 """Default circulation policies when performing an action on a Loan."""

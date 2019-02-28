@@ -63,7 +63,7 @@ def app_config(app_config):
             max_count=get_default_extension_max_count,
         ),
         request=dict(
-            can_request=can_be_requested
+            can_be_requested=can_be_requested
         )
     )
     return app_config
@@ -142,20 +142,6 @@ def mock_is_item_available():
     with mock.patch(path) as mock_is_item_available:
         mock_is_item_available.return_value = True
         yield mock_is_item_available
-
-
-@pytest.fixture()
-def mock_can_be_requested(base_app):
-    """Mock can_be_requested check."""
-    base_app.config["CIRCULATION_POLICIES"]["request"]["can_request"] = \
-        lambda item_pid=None, document_pid=None: True
-
-
-@pytest.fixture()
-def mock_can_not_be_requested(base_app):
-    """Mock can_be_requested check."""
-    base_app.config["CIRCULATION_POLICIES"]["request"]["can_request"] = \
-        lambda item_pid=None, document_pid=None: False
 
 
 @pytest.fixture()

@@ -49,8 +49,9 @@ def _post(app, json_headers, params, pid_value, action):
     return res, payload
 
 
-def test_rest_explicit_loan_valid_action(app, json_headers, params,
-                                         mock_is_item_available, loan_created):
+def test_rest_explicit_loan_valid_action(
+    app, json_headers, params, mock_is_item_available, loan_created
+):
     """Test API valid action on loan."""
     loan_pid = loan_pid_fetcher(loan_created.id, loan_created)
 
@@ -60,8 +61,9 @@ def test_rest_explicit_loan_valid_action(app, json_headers, params,
     assert payload['metadata']['state'] == 'ITEM_ON_LOAN'
 
 
-def test_rest_automatic_loan_valid_action(app, json_headers, params,
-                                          loan_created, mock_can_be_requested):
+def test_rest_automatic_loan_valid_action(
+    app, json_headers, params, loan_created
+):
     """Test API valid action on loan."""
     loan = current_circulation.circulation.trigger(
         loan_created,
@@ -83,9 +85,9 @@ def test_rest_automatic_loan_valid_action(app, json_headers, params,
     assert payload['metadata']['state'] == 'ITEM_AT_DESK'
 
 
-def test_rest_loan_invalid_action(app, json_headers, params,
-                                  mock_is_item_available, loan_created,
-                                  mock_can_be_requested):
+def test_rest_loan_invalid_action(
+    app, json_headers, params, mock_is_item_available, loan_created
+):
     """Test API invalid action on loan."""
     loan = current_circulation.circulation.trigger(
         loan_created,

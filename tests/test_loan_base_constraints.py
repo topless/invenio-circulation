@@ -35,7 +35,8 @@ def test_should_fail_when_item_not_exist(loan_created, params):
 
 
 def test_should_fail_when_item_is_changed(
-        loan_created, db, params, mock_can_be_requested):
+    loan_created, db, params
+):
     """Test that constraints fail if item for an existing loan is changed."""
     with SwappedConfig(
         "CIRCULATION_ITEM_LOCATION_RETRIEVER", lambda x: "pickup_location_pid"
@@ -60,7 +61,8 @@ def test_should_fail_when_patron_not_exist(loan_created, params):
 
 
 def test_should_fail_when_patron_is_changed(
-        loan_created, db, params, mock_can_be_requested):
+    loan_created, db, params
+):
     """Test that constraints fail if patron for an existing loan is changed."""
     with SwappedConfig(
         "CIRCULATION_ITEM_LOCATION_RETRIEVER", lambda x: "pickup_location_pid"
@@ -75,8 +77,9 @@ def test_should_fail_when_patron_is_changed(
         current_circulation.circulation.trigger(loan, **dict(params))
 
 
-def test_persist_loan_parameters(loan_created, db, params,
-                                 mock_is_item_available):
+def test_persist_loan_parameters(
+    loan_created, db, params, mock_is_item_available
+):
     """Test that input params are correctly persisted."""
     loan_pid = loan_pid_fetcher(loan_created.id, loan_created)
     loan = current_circulation.circulation.trigger(

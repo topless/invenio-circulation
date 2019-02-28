@@ -28,8 +28,9 @@ def test_state_enum(app):
     assert not (set(state_dict.get('enum')) - set(all_states))
 
 
-def test_state_checkout_with_loan_pid(loan_created, db, params,
-                                      mock_is_item_available):
+def test_state_checkout_with_loan_pid(
+    loan_created, db, params, mock_is_item_available
+):
     """Test that created Loan validates after a checkout action."""
     new_params = deepcopy(params)
     new_params['trigger'] = 'checkout'

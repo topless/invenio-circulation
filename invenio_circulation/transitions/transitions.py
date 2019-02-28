@@ -13,9 +13,8 @@ from datetime import timedelta
 from flask import current_app
 from invenio_db import db
 
-from ..api import get_available_item_by_doc_pid, get_document_by_item_pid, \
-    get_pending_loans_by_doc_pid, is_document_can_request, \
-    is_item_can_request
+from ..api import can_be_requested, get_available_item_by_doc_pid, \
+    get_document_by_item_pid, get_pending_loans_by_doc_pid
 from ..errors import RecordCannotBeRequested, TransitionConditionsFailed, \
     TransitionConstraintsViolation
 from ..transitions.base import Transition
@@ -138,7 +137,7 @@ class CreatedToPending(Transition):
             document_pid = kwargs.get('document_pid')
             if document_pid and not kwargs.get('item_pid'):
 
-                if not is_document_can_request(loan.get('document_pid')):
+                if not can_be_requested(loan):
                     msg = 'Invalid transition to {0}: document {1} \
                         can not be requested.'\
                         .format(self.dest, loan.get('document_pid'))
@@ -157,7 +156,7 @@ class CreatedToPending(Transition):
         """Set a default pickup location if not passed as param."""
         super(CreatedToPending, self).before(loan, **kwargs)
 
-        if not is_item_can_request(loan.get('item_pid')):
+        if not can_be_requested(loan):
             msg = 'Invalid transition to {0}: item {1} \
                 can not be requested.'\
                 .format(self.dest, loan.get('item_pid'))
