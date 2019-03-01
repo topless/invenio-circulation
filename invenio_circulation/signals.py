@@ -15,12 +15,13 @@ _signals = Namespace()
 loan_state_changed = _signals.signal('loan-state-changed')
 """Loan state changed signal.
 
-Its is broadcasted when a loan transitions to a different state.
+Broadcasted when a loan transitions to a different state, sending the old and
+the updated loan object.
 """
 
 loan_replace_item = _signals.signal('loan-replace-item')
 """Loan item changed signal.
 
-Its is broadcasted when the item in a Loan is replaced, sending the old and the
-new item_pid.
+Broadcasted when the item in a Loan is replaced, sending the old and the new
+item_pid.
 """

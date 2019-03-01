@@ -131,6 +131,7 @@ class Transition(object):
 
         kwargs.setdefault('transaction_date', datetime.now())
         kwargs['transaction_date'] = parse_date(kwargs['transaction_date'])
+        self.prev_loan = loan.copy()
         loan.update(kwargs)
 
     def execute(self, loan, **kwargs):
@@ -146,4 +147,4 @@ class Transition(object):
         db.session.commit()
         current_circulation.loan_indexer.index(loan)
 
-        loan_state_changed.send(self, loan=loan)
+        loan_state_changed.send(self, prev_loan=self.prev_loan, loan=loan)
