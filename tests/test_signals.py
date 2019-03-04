@@ -63,3 +63,4 @@ def test_signals_loan_extend(loan_created, db, params):
     assert len(recorded) == 2
     assert prev_loan["state"] == "ITEM_ON_LOAN"
     assert updated_loan["state"] == "ITEM_ON_LOAN"
+    assert prev_loan["end_date"] != updated_loan["end_date"]
