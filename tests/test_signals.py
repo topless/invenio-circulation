@@ -15,8 +15,8 @@ def test_signals_loan_request(loan_created, db, params):
     """Test signal for loan request action."""
     recorded = []
 
-    def record_signals(_, prev_loan, loan):
-        recorded.append((prev_loan, loan))
+    def record_signals(_, prev_loan, loan, trigger):
+        recorded.append((prev_loan, loan, trigger))
 
     loan_state_changed.connect(record_signals, weak=False)
 
@@ -31,17 +31,18 @@ def test_signals_loan_request(loan_created, db, params):
     )
     db.session.commit()
     assert len(recorded) == 1
-    prev_loan, updated_loan = recorded[0]
+    prev_loan, updated_loan, trigger = recorded.pop()
     assert prev_loan["state"] == "CREATED"
     assert updated_loan["state"] == "PENDING"
+    assert trigger == "request"
 
 
 def test_signals_loan_extend(loan_created, db, params):
     """Test signals for loan extend action."""
     recorded = []
 
-    def record_signals(_, prev_loan, loan):
-        recorded.append((prev_loan, loan))
+    def record_signals(_, prev_loan, loan, trigger):
+        recorded.append((prev_loan, loan, trigger))
 
     loan_state_changed.connect(record_signals, weak=False)
 
@@ -50,17 +51,19 @@ def test_signals_loan_extend(loan_created, db, params):
         loan_created, **dict(params, trigger="checkout")
     )
     db.session.commit()
-    prev_loan, updated_loan = recorded[0]
     assert len(recorded) == 1
+    prev_loan, updated_loan, trigger = recorded.pop()
     assert prev_loan["state"] == "CREATED"
     assert updated_loan["state"] == "ITEM_ON_LOAN"
+    assert trigger == "checkout"
 
     current_circulation.circulation.trigger(
         loan, **dict(params, trigger="extend")
     )
     db.session.commit()
-    prev_loan, updated_loan = recorded[1]
-    assert len(recorded) == 2
+    assert len(recorded) == 1
+    prev_loan, updated_loan, trigger = recorded.pop()
     assert prev_loan["state"] == "ITEM_ON_LOAN"
     assert updated_loan["state"] == "ITEM_ON_LOAN"
     assert prev_loan["end_date"] != updated_loan["end_date"]
+    assert trigger == "extend"

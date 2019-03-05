@@ -147,4 +147,5 @@ class Transition(object):
         db.session.commit()
         current_circulation.loan_indexer.index(loan)
 
-        loan_state_changed.send(self, prev_loan=self.prev_loan, loan=loan)
+        loan_state_changed.send(
+            self, prev_loan=self.prev_loan, loan=loan, trigger=self.trigger)
