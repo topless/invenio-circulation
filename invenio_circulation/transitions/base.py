@@ -8,6 +8,7 @@
 
 """Invenio Circulation base transitions."""
 
+import copy
 from datetime import datetime
 
 from flask import current_app
@@ -131,7 +132,7 @@ class Transition(object):
 
         kwargs.setdefault('transaction_date', datetime.now())
         kwargs['transaction_date'] = parse_date(kwargs['transaction_date'])
-        self.prev_loan = loan.copy()
+        self.prev_loan = copy.deepcopy(loan)
         loan.update(kwargs)
 
     def execute(self, loan, **kwargs):
