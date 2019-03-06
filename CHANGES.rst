@@ -7,6 +7,11 @@
 Changes
 =======
 
+Version 1.0.0a8 (released 2019-03-06)
+
+- Introduce `request` policy.
+- Pass previous loan and trigger name on the state change signal.
+
 Version 1.0.0a7 (released 2019-02-25)
 
 - Replace item_pid with loan_pid in $ref Loan schema.
