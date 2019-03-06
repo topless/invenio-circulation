@@ -8,8 +8,8 @@
 
 """Circulation minters."""
 
-from .providers import CirculationLoanIdProvider
 from ..api import Loan
+from .providers import CirculationLoanIdProvider
 
 
 def loan_pid_minter(record_uuid, data):
