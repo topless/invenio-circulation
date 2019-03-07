@@ -57,6 +57,7 @@ from invenio_records.ext import InvenioRecords
 from invenio_records_rest.ext import InvenioRecordsREST
 from invenio_records_rest.utils import PIDConverter
 from invenio_records_rest.views import create_blueprint_from_app
+from invenio_rest import InvenioREST
 from invenio_search.ext import InvenioSearch
 
 from invenio_circulation.api import Loan
@@ -82,6 +83,7 @@ app.config["RECORDS_REST_ENDPOINTS"] = CIRCULATION_REST_ENDPOINTS
 app.url_map.converters["pid"] = PIDConverter
 InvenioDB(app)
 InvenioRecords(app)
+InvenioREST(app)
 InvenioRecordsREST(app)
 InvenioPIDStore(app)
 InvenioSearch(app)

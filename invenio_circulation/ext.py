@@ -18,7 +18,7 @@ from invenio_records_rest.utils import obj_or_import_string
 from werkzeug.utils import cached_property
 
 from . import config
-from .errors import InvalidState, NoValidTransitionAvailable, \
+from .errors import InvalidLoanState, NoValidTransitionAvailable, \
     TransitionConditionsFailed
 from .pidstore.pids import CIRCULATION_LOAN_PID_TYPE
 from .search.api import LoansSearch
@@ -106,7 +106,7 @@ class _Circulation(object):
     def _validate_current_state(self, state):
         """Validate that the given loan state is configured."""
         if not state or state not in self.transitions:
-            raise InvalidState("Invalid loan state `{}`".format(state))
+            raise InvalidLoanState(state=state)
 
     def trigger(self, loan, **kwargs):
         """Trigger the action to transit a Loan to the next state."""
@@ -118,10 +118,9 @@ class _Circulation(object):
                 t.execute(loan, **kwargs)
                 return loan
             except TransitionConditionsFailed as ex:
-                current_app.logger.debug(ex.msg)
+                # NOTE: Silent pass not good, gets logged by Exception itself.
                 pass
 
         raise NoValidTransitionAvailable(
-            "No valid transition with current"
-            " state `{}`.".format(current_state)
+            loan_pid=str(loan.id), state=current_state
         )

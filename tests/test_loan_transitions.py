@@ -16,7 +16,7 @@ from flask import current_app
 from flask_security import login_user
 
 from invenio_circulation.api import Loan, is_item_available
-from invenio_circulation.errors import ItemNotAvailable, \
+from invenio_circulation.errors import ItemNotAvailable, LoanMaxExtension, \
     NoValidTransitionAvailable, RecordCannotBeRequested, \
     TransitionConstraintsViolation
 from invenio_circulation.proxies import current_circulation
@@ -84,7 +84,7 @@ def test_loan_extend(loan_created, db, params, mock_is_item_available):
         "max_count"
     ] = get_max_count_0
 
-    with pytest.raises(TransitionConstraintsViolation):
+    with pytest.raises(LoanMaxExtension):
         loan = current_circulation.circulation.trigger(
             loan, **dict(params, trigger="extend")
         )
@@ -110,7 +110,7 @@ def test_loan_extend(loan_created, db, params, mock_is_item_available):
     db.session.commit()
 
     # test too many extensions
-    with pytest.raises(TransitionConstraintsViolation):
+    with pytest.raises(LoanMaxExtension):
         loan = current_circulation.circulation.trigger(
             loan, **dict(params, trigger="extend")
         )
@@ -332,34 +332,25 @@ def test_checkout_on_unavailable_item(
     mock_is_item_available.return_value = False
 
     with pytest.raises(ItemNotAvailable):
-        loan = current_circulation.circulation.trigger(
+        current_circulation.circulation.trigger(
             loan_created, **dict(params, trigger="checkout")
         )
-
         loan_created["state"] = "ITEM_AT_DESK"
-
-        loan = current_circulation.circulation.trigger(
-            loan_created, **dict(params)
-        )
+        current_circulation.circulation.trigger(loan_created, **dict(params))
 
 
 def _loan_steps_created_to_on_loan(loan_created, params):
-    """Go step by step through all the transitions"""
-
+    """Go step by step through all the transitions."""
     # loan created
-    loan = current_circulation.circulation.trigger(
+    current_circulation.circulation.trigger(
         loan_created, **dict(params, trigger="request")
     )
-
     # loan pending
-    loan = current_circulation.circulation.trigger(
+    current_circulation.circulation.trigger(
         loan_created, **dict(params, trigger="next")
     )
-
     # item at desk
-    loan = current_circulation.circulation.trigger(
-        loan_created, **dict(params)
-    )
+    current_circulation.circulation.trigger(loan_created, **dict(params))
     assert loan_created["state"] == "ITEM_ON_LOAN"
 
 
@@ -379,22 +370,18 @@ def test_checkout_item_unavailable_steps(
     login_user(user)
     with pytest.raises(NoValidTransitionAvailable):
         # loan created
-        loan = current_circulation.circulation.trigger(
+        current_circulation.circulation.trigger(
             loan_created, **dict(params, trigger="request")
         )
-
         # loan pending
-        loan = current_circulation.circulation.trigger(
+        current_circulation.circulation.trigger(
             loan_created, **dict(params, trigger="next")
         )
-
         loan_created["state"] = "ITEM_ON_LOAN"
-        loan = current_circulation.circulation.trigger(
-            loan_created, **dict(params)
-        )
+        current_circulation.circulation.trigger(loan_created, **dict(params))
 
         # trying to checkout item already on loan
-        loan = current_circulation.circulation.trigger(
+        current_circulation.circulation.trigger(
             loan_created, **dict(params, trigger="checkout")
         )
 
@@ -460,7 +447,6 @@ def test_document_requests_on_item_returned(
     mock_is_item_available, loan_created, db, params
 ):
     """Test loan request action."""
-
     # return item is not available
     mock_available_item.return_value = False
 
@@ -526,7 +512,7 @@ def test_document_requests_on_item_returned(
             assert pending_loan["document_pid"] == "document_pid"
 
 
-def test_deny_request(loan_created, db, params):
+def test_deny_request(loan_created, params):
     """Test deny request action."""
     with SwappedNestedConfig(
         ["CIRCULATION_POLICIES", "request", "can_be_requested"],

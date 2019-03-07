@@ -17,17 +17,19 @@ from invenio_access import action_factory
 from invenio_access.permissions import Permission
 from invenio_records_rest.utils import allow_all
 
+from invenio_circulation.errors import InvalidPermission
+
 loan_access = action_factory('loan-read-access')
 
 
-def check_permission(permission):
+def check_permission(action, permission):
     """Abort if permission is not allowed.
 
     :param permission: The permission to check.
     """
     if permission is not None and not permission.can():
         if current_user.is_authenticated:
-            abort(403, 'You do not have a permission for this action')
+            raise InvalidPermission(action=action, permission=permission)
         abort(401)
 
 
@@ -71,6 +73,7 @@ def need_permissions(action):
         @wraps(f)
         def decorate(*args, **kwargs):
             check_permission(
+                action,
                 current_app
                 .config['CIRCULATION_VIEWS_PERMISSIONS_FACTORY'](action)
             )

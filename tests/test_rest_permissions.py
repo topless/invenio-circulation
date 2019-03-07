@@ -6,13 +6,15 @@
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
-"""Test API permissions"""
+"""Test API permissions."""
 
 import json
 
 from flask import url_for
 from invenio_accounts.models import User
 from invenio_accounts.testutils import login_user_via_session
+
+from invenio_circulation.errors import ErrorCodes
 
 
 def _get(app, json_headers, pid_value, user_email=None):
@@ -51,8 +53,10 @@ def test_logged_user_no_access(app, json_headers, indexed_loans, users):
     user_email = User.query.get(user.id).email
 
     multiple_loans_pid = "item_multiple_pending_on_loan_7"
-    res, _ = _get(app, json_headers, multiple_loans_pid, user_email)
+    res, payload = _get(app, json_headers, multiple_loans_pid, user_email)
+    circulation_code = res.get_json()["circulation_code"]
     assert res.status_code == 403
+    assert circulation_code == ErrorCodes.INVALID_PERMISSION.value
 
 
 def test_logged_user_access_granted(app, json_headers, indexed_loans, users):

@@ -10,7 +10,8 @@
 
 import pytest
 
-from invenio_circulation.errors import TransitionConstraintsViolation
+from invenio_circulation.errors import ItemDoNotMatch, ItemNotAvailable, \
+    TransitionConstraintsViolation
 from invenio_circulation.pidstore.fetchers import loan_pid_fetcher
 from invenio_circulation.proxies import current_circulation
 
@@ -27,7 +28,7 @@ def test_should_fail_when_missing_required_params(loan_created):
 
 def test_should_fail_when_item_not_exist(loan_created, params):
     """Test that transition fails when loan item do not exists."""
-    with pytest.raises(TransitionConstraintsViolation):
+    with pytest.raises(ItemNotAvailable):
         with SwappedConfig("CIRCULATION_ITEM_EXISTS", lambda x: False):
             current_circulation.circulation.trigger(
                 loan_created, **dict(params, trigger="checkout")
@@ -47,7 +48,7 @@ def test_should_fail_when_item_is_changed(
     db.session.commit()
 
     params["item_pid"] = "different_item_pid"
-    with pytest.raises(TransitionConstraintsViolation):
+    with pytest.raises(ItemDoNotMatch):
         current_circulation.circulation.trigger(loan, **dict(params))
 
 

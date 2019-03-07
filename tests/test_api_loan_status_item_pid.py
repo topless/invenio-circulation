@@ -13,7 +13,7 @@ from invenio_indexer.api import RecordIndexer
 from invenio_search import current_search
 
 from invenio_circulation.api import get_loan_for_item
-from invenio_circulation.errors import MultipleLoansOnItemError
+from invenio_circulation.errors import MultipleLoansOnItem
 
 from .helpers import create_loan
 
@@ -66,5 +66,5 @@ def test_multiple_active_loans(app, db, indexed_loans):
     RecordIndexer().index(loan)
     current_search.flush_and_refresh(index="loans")
 
-    with pytest.raises(MultipleLoansOnItemError):
+    with pytest.raises(MultipleLoansOnItem):
         get_loan_for_item(multiple_loans_pid)

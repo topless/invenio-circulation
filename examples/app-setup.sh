@@ -14,3 +14,5 @@ export FLASK_APP=app.py
 # Create the database
 flask db init
 flask db create
+
+flask fixtures loans
