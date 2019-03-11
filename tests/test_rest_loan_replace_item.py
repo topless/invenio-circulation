@@ -12,7 +12,6 @@ import json
 from flask import url_for
 
 from invenio_circulation.api import get_loan_for_item
-from invenio_circulation.errors import ErrorCodes
 
 
 def _post(app, json_headers, loan, payload):
@@ -48,7 +47,6 @@ def test_loan_replace_item_inactive_state(
     payload = {"item_pid": "new_item_pid"}
     res, data = _post(app, json_headers, loan, payload)
     assert data["status"] == 400
-    assert data["circulation_code"] == ErrorCodes.INVALID_LOAN_STATE.value
     assert data["message"] == (
         "Cannot replace item in a loan that is not in "
         "active state. Current loan state '{}'".format(loan["state"])
@@ -64,7 +62,6 @@ def test_loan_replace_item_wo_params(
     payload = {}
     res, data = _post(app, json_headers, loan, payload)
     assert res.status_code == 400
-    assert data["circulation_code"] == ErrorCodes.PROPERTY_REQUIRED.value
 
 
 def test_loan_replace_item_wo_loan(app, json_headers, params, indexed_loans):

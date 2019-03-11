@@ -13,7 +13,6 @@ import json
 from flask import url_for
 from invenio_db import db
 
-from invenio_circulation.errors import ErrorCodes
 from invenio_circulation.pidstore.fetchers import loan_pid_fetcher
 from invenio_circulation.proxies import current_circulation
 from invenio_circulation.views import build_url_action_for_pid
@@ -103,6 +102,4 @@ def test_rest_loan_invalid_action(
     res, payload = _post(app, json_headers, params,
                          pid_value=loan_pid.pid_value, action='extend')
     assert res.status_code == 400
-    assert payload["circulation_code"] == \
-        ErrorCodes.NO_VALID_TRANSITION_AVAILABLE.value
     assert 'message' in payload

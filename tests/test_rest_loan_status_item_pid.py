@@ -14,8 +14,6 @@ from flask import url_for
 from invenio_indexer.api import RecordIndexer
 from invenio_search import current_search
 
-from invenio_circulation.errors import ErrorCodes
-
 from .helpers import create_loan
 
 
@@ -85,6 +83,4 @@ def test_multiple_active_loans(app, db, json_headers, indexed_loans):
     current_search.flush_and_refresh(index="loans")
 
     res, data = _get(app, json_headers, multiple_loans_pid)
-    circulation_code = res.get_json()["circulation_code"]
     assert res.status_code == 400
-    assert circulation_code == ErrorCodes.MULTIPLE_LOANS_ON_ITEM.value
