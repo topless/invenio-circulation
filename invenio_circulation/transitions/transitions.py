@@ -74,6 +74,11 @@ def _ensure_valid_extension(loan):
             extension_count=extension_max_count
         )
 
+    raise LoanMaxExtension(
+        loan_pid=loan["loan_pid"],
+        extension_count=extension_max_count
+    )
+
     loan['extension_count'] = extension_count
 
     get_extension_duration = current_app.config['CIRCULATION_POLICIES'][
