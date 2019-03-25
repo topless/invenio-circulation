@@ -7,6 +7,10 @@
 Changes
 =======
 
+Version 1.0.0a9 (released 2019-03-25)
+
+- Introduce Circulation Exceptions
+
 Version 1.0.0a8 (released 2019-03-06)
 
 - Introduce `request` policy.
