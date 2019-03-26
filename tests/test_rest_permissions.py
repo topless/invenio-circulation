@@ -6,7 +6,7 @@
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
-"""Test API permissions"""
+"""Test API permissions."""
 
 import json
 
@@ -51,7 +51,7 @@ def test_logged_user_no_access(app, json_headers, indexed_loans, users):
     user_email = User.query.get(user.id).email
 
     multiple_loans_pid = "item_multiple_pending_on_loan_7"
-    res, _ = _get(app, json_headers, multiple_loans_pid, user_email)
+    res, payload = _get(app, json_headers, multiple_loans_pid, user_email)
     assert res.status_code == 403
 
 

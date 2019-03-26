@@ -8,42 +8,22 @@
 
 """Circulation views."""
 
-import logging
 from copy import deepcopy
 
 from flask import Blueprint, current_app, jsonify, request, url_for
 from invenio_db import db
 from invenio_records_rest.utils import obj_or_import_string
-from invenio_records_rest.views import \
-    create_error_handlers as records_rest_error_handlers
 from invenio_records_rest.views import pass_record
 from invenio_rest import ContentNegotiatedMethodView
-from invenio_rest.views import create_api_errorhandler
-from werkzeug.exceptions import BadRequest, InternalServerError, NotFound
 
 from .api import get_loan_for_item
-from .errors import CirculationException, InvalidCirculationPermission, \
-    ItemNotAvailable, LoanActionError, MultipleLoansOnItemError, \
-    NoValidTransitionAvailable
+from .errors import InvalidLoanStateError, ItemNotAvailableError, \
+    MissingRequiredParameterError
 from .permissions import need_permissions
 from .pidstore.fetchers import loan_pid_fetcher
 from .pidstore.pids import _LOANID_CONVERTER, CIRCULATION_LOAN_PID_TYPE
 from .proxies import current_circulation
 from .signals import loan_replace_item
-
-logger = logging.getLogger(__name__)
-
-HTTP_CODES = {"bad_request": 400, "accepted": 202}
-
-
-def create_error_handlers(blueprint):
-    """Create error handlers on blueprint."""
-    blueprint.errorhandler(CirculationException)(
-        create_api_errorhandler(
-            status=HTTP_CODES["bad_request"], message="Invalid loan action"
-        )
-    )
-    records_rest_error_handlers(blueprint)
 
 
 def extract_transitions_from_app(app):
@@ -71,8 +51,6 @@ def create_loan_actions_blueprint(app):
     blueprint = Blueprint(
         "invenio_circulation_loan_actions", __name__, url_prefix=""
     )
-
-    create_error_handlers(blueprint)
 
     endpoints = app.config.get("CIRCULATION_REST_ENDPOINTS", [])
     pid_type = CIRCULATION_LOAN_PID_TYPE
@@ -119,24 +97,14 @@ class LoanActionResource(ContentNegotiatedMethodView):
     def post(self, pid, record, action, **kwargs):
         """Handle loan action."""
         params = request.get_json()
-        try:
-            # perform action on the current loan
-            record = current_circulation.circulation.trigger(
-                record, **dict(params, trigger=action)
-            )
-            db.session.commit()
-        except (
-            ItemNotAvailable,
-            InvalidCirculationPermission,
-            NoValidTransitionAvailable,
-        ) as ex:
-            current_app.logger.exception(ex.msg)
-            raise LoanActionError(ex)
-
+        record = current_circulation.circulation.trigger(
+            record, **dict(params, trigger=action)
+        )
+        db.session.commit()
         return self.make_response(
             pid,
             record,
-            HTTP_CODES["accepted"],
+            202,
             links_factory=current_app.config.get(
                 "CIRCULATION_LOAN_LINKS_FACTORY"
             ),
@@ -148,8 +116,6 @@ def create_loan_for_item_blueprint(app):
     blueprint = Blueprint(
         "invenio_circulation_loan_for_item", __name__, url_prefix=""
     )
-
-    create_error_handlers(blueprint)
 
     rec_serializers = {
         "application/json": (
@@ -187,14 +153,9 @@ class ItemLoanResource(ContentNegotiatedMethodView):
         """Handle GET request for item state."""
         item_pid = kwargs.get("pid_value", None)
         if not item_pid:
-            raise BadRequest()
+            raise ItemNotAvailableError(item_pid=item_pid)
 
-        try:
-            loan = get_loan_for_item(item_pid)
-        except MultipleLoansOnItemError as ex:
-            logger.error(ex)
-            raise InternalServerError()
-
+        loan = get_loan_for_item(item_pid)
         if loan:
             loan_pid = loan_pid_fetcher(loan.id, loan)
             return self.make_response(
@@ -205,7 +166,6 @@ class ItemLoanResource(ContentNegotiatedMethodView):
                     "CIRCULATION_LOAN_LINKS_FACTORY"
                 ),
             )
-
         return jsonify({})
 
 
@@ -215,7 +175,6 @@ def create_loan_replace_item_blueprint(app):
         "invenio_circulation_loan_replace_item", __name__, url_prefix=""
     )
 
-    create_error_handlers(blueprint)
     rec_serializers = {
         "application/json": (
             "invenio_records_rest.serializers" ":json_v1_response"
@@ -242,15 +201,20 @@ def validate_replace_item(loan, data):
     """Validate data before replacing an item in loan."""
     active_states = current_app.config["CIRCULATION_STATES_LOAN_ACTIVE"]
     if loan["state"] not in active_states:
-        raise BadRequest("Cannot replace item in a loan that is not active.")
+        raise InvalidLoanStateError(description=(
+            "Cannot replace item in a loan that is not in active state. "
+            "Current loan state '{}'".format(loan["state"])
+        ))
 
     item_pid = data.get("item_pid")
     if not item_pid:
-        raise BadRequest("Invalid request data, an item_pid is required.")
+        raise MissingRequiredParameterError(
+            description="Parameter item_pid is required."
+        )
 
     item_exists = current_app.config.get("CIRCULATION_ITEM_EXISTS")(item_pid)
     if not item_exists:
-        raise NotFound("No item found with item_pid: {}".format(item_pid))
+        raise ItemNotAvailableError(item_pid=item_pid)
 
 
 def loan_update(loan, data):
@@ -296,7 +260,7 @@ class LoanReplaceItemResource(ContentNegotiatedMethodView):
         return self.make_response(
             pid,
             record,
-            HTTP_CODES["accepted"],
+            202,
             links_factory=current_app.config.get(
                 "CIRCULATION_LOAN_LINKS_FACTORY"
             ),

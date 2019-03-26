@@ -15,8 +15,8 @@ from invenio_db import db
 
 from ..api import can_be_requested, get_available_item_by_doc_pid, \
     get_document_by_item_pid, get_pending_loans_by_doc_pid
-from ..errors import RecordCannotBeRequested, TransitionConditionsFailed, \
-    TransitionConstraintsViolation
+from ..errors import LoanMaxExtensionError, RecordCannotBeRequestedError, \
+    TransitionConditionsFailedError, TransitionConstraintsViolationError
 from ..transitions.base import Transition
 from ..transitions.conditions import is_same_location
 from ..utils import parse_date
@@ -35,19 +35,18 @@ def _ensure_valid_loan_duration(loan):
     is_duration_valid = current_app.config['CIRCULATION_POLICIES']['checkout'][
         'duration_validate']
     if not is_duration_valid(loan):
-        msg = 'The loan duration from `{0}` to `{1}` is not valid'.format(
+        msg = "The loan duration from '{0}' to '{1}' is not valid.".format(
             loan['start_date'],
             loan['end_date']
         )
-        raise TransitionConstraintsViolation(msg=msg)
+        raise TransitionConstraintsViolationError(description=msg)
 
 
 def _ensure_item_attached_to_loan(loan):
     """Validate that an item is attached to a loan."""
     if not loan.get('item_pid'):
-        raise TransitionConditionsFailed(
-            msg='No item found attached in loan with pid {0}.'
-                .format(str(loan.id)))
+        msg = "No item attached in loan with pid '{0}'.".format(loan.id)
+        raise TransitionConditionsFailedError(description=msg)
 
 
 def _update_document_pending_request_for_item(item_pid):
@@ -70,8 +69,10 @@ def _ensure_valid_extension(loan):
     extension_count += 1
 
     if extension_count > extension_max_count:
-        msg = 'Max extension count reached `{0}`'.format(extension_max_count)
-        raise TransitionConstraintsViolation(msg=msg)
+        raise LoanMaxExtensionError(
+            loan_pid=loan["loan_pid"],
+            extension_count=extension_max_count
+        )
 
     loan['extension_count'] = extension_count
 
@@ -136,12 +137,12 @@ class CreatedToPending(Transition):
         def inner(self, loan, **kwargs):
             document_pid = kwargs.get('document_pid')
             if document_pid and not kwargs.get('item_pid'):
-
                 if not can_be_requested(loan):
-                    msg = 'Invalid transition to {0}: document {1} \
-                        can not be requested.'\
-                        .format(self.dest, loan.get('document_pid'))
-                    raise RecordCannotBeRequested(msg=msg)
+                    msg = (
+                        'Transition to {0} failed.'
+                        'Document {1} can not be requested.'
+                    ).format(self.dest, loan.get('document_pid'))
+                    raise RecordCannotBeRequestedError(description=msg)
 
                 available_item_pid = get_available_item_by_doc_pid(
                     document_pid
@@ -157,10 +158,10 @@ class CreatedToPending(Transition):
         super(CreatedToPending, self).before(loan, **kwargs)
 
         if not can_be_requested(loan):
-            msg = 'Invalid transition to {0}: item {1} \
-                can not be requested.'\
-                .format(self.dest, loan.get('item_pid'))
-            raise RecordCannotBeRequested(msg=msg)
+            msg = (
+                'Transition to {0} failed. Item {1} can not be requested.'
+            ).format(self.dest, loan.get('item_pid'))
+            raise RecordCannotBeRequestedError(description=msg)
 
         # set pickup location to item location if not passed as default
         if not loan.get('pickup_location_pid'):
@@ -180,9 +181,9 @@ class PendingToItemAtDesk(Transition):
         _ensure_item_attached_to_loan(loan)
 
         if not is_same_location(loan['item_pid'], loan['pickup_location_pid']):
-            msg = 'Invalid transition to {0}: Pickup is not at the same ' \
-                  'library.'.format(self.dest)
-            raise TransitionConditionsFailed(msg=msg)
+            msg = "Pickup is not at the same library. " \
+                "Transition to {} has failed.".format(self.dest)
+            raise TransitionConditionsFailedError(description=msg)
 
 
 class PendingToItemInTransitPickup(Transition):
@@ -196,9 +197,9 @@ class PendingToItemInTransitPickup(Transition):
         _ensure_item_attached_to_loan(loan)
 
         if is_same_location(loan['item_pid'], loan['pickup_location_pid']):
-            raise TransitionConditionsFailed(
-                msg='Invalid transition to {0}: Pickup is at the same library.'
-                    .format(self.dest))
+            msg = "Pickup is at the same library. " \
+                "Transition to '{0}' has failed.".format(self.dest)
+            raise TransitionConditionsFailedError(description=msg)
 
 
 class ItemOnLoanToItemOnLoan(Transition):
@@ -218,9 +219,9 @@ class ItemOnLoanToItemInTransitHouse(Transition):
         super(ItemOnLoanToItemInTransitHouse, self).before(loan, **kwargs)
         if is_same_location(loan['item_pid'],
                             loan['transaction_location_pid']):
-            msg = 'Invalid transition to {0}: item should be returned ' \
-                  'because already to house.'.format(self.dest)
-            raise TransitionConditionsFailed(msg=msg)
+            msg = "Item should be returned (already in house). " \
+                "Transition to '{0}' has failed.".format(self.dest)
+            raise TransitionConditionsFailedError(description=msg)
 
         # set end loan date as transaction date when completing loan
         loan['end_date'] = loan['transaction_date']
@@ -239,9 +240,9 @@ class ItemOnLoanToItemReturned(Transition):
         super(ItemOnLoanToItemReturned, self).before(loan, **kwargs)
         if not is_same_location(loan['item_pid'],
                                 loan['transaction_location_pid']):
-            msg = 'Invalid transition to {0}: item should be in transit to ' \
-                  'house.'.format(self.dest)
-            raise TransitionConditionsFailed(msg=msg)
+            msg = "Item should be in transit to house. " \
+                "Transition to '{0}' has failed.".format(self.dest)
+            raise TransitionConditionsFailedError(description=msg)
 
         # set end loan date as transaction date when completing loan
         loan['end_date'] = loan['transaction_date']

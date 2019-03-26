@@ -25,10 +25,10 @@ def check_permission(permission):
 
     :param permission: The permission to check.
     """
-    if permission is not None and not permission.can():
-        if current_user.is_authenticated:
-            abort(403, 'You do not have a permission for this action')
-        abort(401)
+    if permission and not permission.can():
+        if not current_user.is_authenticated:
+            abort(401)
+        abort(403)
 
 
 def has_read_loan_permission(*args, **kwargs):
@@ -65,7 +65,7 @@ def views_permissions_factory(action):
 def need_permissions(action):
     """View decorator to check permissions for the given action or abort.
 
-    :param action: The action needed.
+    :param permission: The permission based on the action.
     """
     def decorator_builder(f):
         @wraps(f)

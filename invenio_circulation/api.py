@@ -13,7 +13,7 @@ from invenio_jsonschemas import current_jsonschemas
 from invenio_pidstore.resolver import Resolver
 from invenio_records.api import Record
 
-from .errors import CirculationException, MultipleLoansOnItemError
+from .errors import MissingRequiredParameterError, MultipleLoansOnItemError
 from .pidstore.pids import CIRCULATION_LOAN_PID_TYPE
 from .search.api import search_by_patron_item, search_by_pid
 
@@ -129,21 +129,24 @@ def get_loan_for_item(item_pid):
     hits = list(search.scan())
     if hits:
         if len(hits) > 1:
-            raise MultipleLoansOnItemError(
-                "Multiple active loans on item {0}".format(item_pid)
-            )
-
+            raise MultipleLoansOnItemError(item_pid=item_pid)
         loan = Loan.get_record_by_pid(hits[0][Loan.pid_field])
     return loan
 
 
 def patron_has_active_loan_on_item(patron_pid, item_pid):
     """Return True if patron has a pending or active Loan for given item."""
-    config = current_app.config
-    if not patron_pid or not item_pid:
-        raise CirculationException("Patron PID or Item PID not specified")
+    if not patron_pid:
+        raise MissingRequiredParameterError(
+            description="Parameter 'patron_pid' is required"
+        )
+    if not item_pid:
+        raise MissingRequiredParameterError(
+            description="Parameter 'item_pid' is required"
+        )
 
-    states = ["CREATED", "PENDING"] + config["CIRCULATION_STATES_LOAN_ACTIVE"]
+    states = ["CREATED", "PENDING"] + \
+        current_app.config["CIRCULATION_STATES_LOAN_ACTIVE"]
     search = search_by_patron_item(
         patron_pid=patron_pid,
         item_pid=item_pid,

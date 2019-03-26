@@ -11,6 +11,8 @@
 from elasticsearch_dsl import VERSION as ES_VERSION
 from invenio_search.api import RecordsSearch
 
+from invenio_circulation.errors import MissingRequiredParameterError
+
 from ..proxies import current_circulation
 
 
@@ -42,7 +44,10 @@ def search_by_pid(item_pid=None, document_pid=None, filter_states=None,
     elif item_pid:
         search = search.filter("term", item_pid=item_pid)
     else:
-        raise ValueError("Must specify item_pid or document_pid param")
+        raise MissingRequiredParameterError(description=(
+            "One of the parameters 'item_pid' "
+            "or 'document_pid' is required."
+        ))
 
     if filter_states:
         search = search.filter("terms", state=filter_states)

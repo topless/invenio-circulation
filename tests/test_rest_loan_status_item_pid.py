@@ -82,5 +82,5 @@ def test_multiple_active_loans(app, db, json_headers, indexed_loans):
     RecordIndexer().index(loan)
     current_search.flush_and_refresh(index="loans")
 
-    res, payload = _get(app, json_headers, multiple_loans_pid)
-    assert res.status_code == 500
+    res, data = _get(app, json_headers, multiple_loans_pid)
+    assert res.status_code == 400

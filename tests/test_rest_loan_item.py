@@ -15,7 +15,7 @@ from invenio_db import db
 
 from invenio_circulation.pidstore.fetchers import loan_pid_fetcher
 from invenio_circulation.proxies import current_circulation
-from invenio_circulation.views import HTTP_CODES, build_url_action_for_pid
+from invenio_circulation.views import build_url_action_for_pid
 
 
 def test_rest_get_loan(app, json_headers, loan_created):
@@ -57,7 +57,7 @@ def test_rest_explicit_loan_valid_action(
 
     res, payload = _post(app, json_headers, params,
                          pid_value=loan_pid.pid_value, action='checkout')
-    assert res.status_code == HTTP_CODES['accepted']
+    assert res.status_code == 202
     assert payload['metadata']['state'] == 'ITEM_ON_LOAN'
 
 
@@ -81,7 +81,7 @@ def test_rest_automatic_loan_valid_action(
 
     res, payload = _post(app, json_headers, params,
                          pid_value=loan_pid.pid_value, action='next')
-    assert res.status_code == HTTP_CODES['accepted']
+    assert res.status_code == 202
     assert payload['metadata']['state'] == 'ITEM_AT_DESK'
 
 
@@ -101,5 +101,5 @@ def test_rest_loan_invalid_action(
 
     res, payload = _post(app, json_headers, params,
                          pid_value=loan_pid.pid_value, action='extend')
-    assert res.status_code == HTTP_CODES['bad_request']
+    assert res.status_code == 400
     assert 'message' in payload

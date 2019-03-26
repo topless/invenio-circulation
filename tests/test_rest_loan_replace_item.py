@@ -47,8 +47,9 @@ def test_loan_replace_item_inactive_state(
     payload = {"item_pid": "new_item_pid"}
     res, data = _post(app, json_headers, loan, payload)
     assert data["status"] == 400
-    assert (
-        data["message"] == "Cannot replace item in a loan that is not active."
+    assert data["message"] == (
+        "Cannot replace item in a loan that is not in active state. "
+        "Current loan state '{}'".format(loan["state"])
     )
 
 
@@ -60,7 +61,7 @@ def test_loan_replace_item_wo_params(
     loan = get_loan_for_item(item_pid)
     payload = {}
     res, data = _post(app, json_headers, loan, payload)
-    assert res.status == "400 BAD REQUEST"
+    assert res.status_code == 400
 
 
 def test_loan_replace_item_wo_loan(app, json_headers, params, indexed_loans):

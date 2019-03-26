@@ -11,98 +11,77 @@
 
 import ciso8601
 
-from .errors import NotImplementedError
+from .errors import NotImplementedConfigurationError
 
 
 def patron_exists(patron_pid):
     """Return True if patron exists, False otherwise."""
-    raise NotImplementedError(
-        "Function is not implemented. \
-        Implement this function in your module and pass it to \
-        the config variable `CIRCULATION_PATRON_EXISTS`"
+    raise NotImplementedConfigurationError(
+        config_variable="CIRCULATION_PATRON_EXISTS"
     )
 
 
 def item_exists(item_pid):
     """Return True if item exists, False otherwise."""
-    raise NotImplementedError(
-        "Function is not implemented. \
-        Implement this function in your module and pass it to \
-        the config variable `CIRCULATION_ITEM_EXISTS`"
+    raise NotImplementedConfigurationError(
+        config_variable="CIRCULATION_ITEM_EXISTS"
     )
 
 
 # NOTE: Its on purpose `ref` and not `$ref` so it doesn't try to resolve
 def item_ref_builder(loan_pid):
     """Return the $ref for item_pid."""
-    raise NotImplementedError(
-        "Function is not implemented. \
-        Implement this function in your module and pass it to \
-        the config variable `CIRCULATION_ITEM_REF_BUILDER`"
+    raise NotImplementedConfigurationError(
+        config_variable="CIRCULATION_ITEM_REF_BUILDER"
     )
 
 
 def item_location_retriever(item_pid):
     """Retrieve the location pid of the passed item pid."""
-    raise NotImplementedError(
-        "Function is not implemented. \
-        Implement this function in your module and pass it to \
-        the config variable `CIRCULATION_ITEM_LOCATION_RETRIEVER`"
+    raise NotImplementedConfigurationError(
+        config_variable="CIRCULATION_ITEM_LOCATION_RETRIEVER"
     )
 
 
 def is_item_available(item_pid):
     """Return if item is available for checkout."""
-    raise NotImplementedError(
-        "Function is not implemented. \
-        Implement this function in your module and pass it to \
-        the config variable `CIRCULATION_POLICIES.checkout.is_item_available`"
+    raise NotImplementedConfigurationError(
+        config_variable="CIRCULATION_POLICIES.checkout.is_item_available"
     )
 
 
 def can_be_requested(loan):
     """Should return True if document or item can be requested."""
-    raise NotImplementedError(
-        "Function is not implemented. \
-        Implement this function in your module and pass it to \
-        the config variable \
-        `CIRCULATION_POLICIES.request.can_be_requested`"
+    raise NotImplementedConfigurationError(
+        config_variable="CIRCULATION_POLICIES.request.can_be_requested"
     )
 
 
 def get_default_loan_duration(loan):
     """Return a default loan duration in number of days."""
-    raise NotImplementedError(
-        "Function is not implemented. \
-        Implement this function in your module and pass it to \
-        the config variable `CIRCULATION_POLICIES.checkout.duration_default`"
+    raise NotImplementedConfigurationError(
+        config_variable="CIRCULATION_POLICIES.checkout.duration_default"
     )
 
 
 def is_loan_duration_valid(loan):
     """Validate the loan duration."""
-    raise NotImplementedError(
-        "Function is not implemented. \
-        Implement this function in your module and pass it to \
-        the config variable `CIRCULATION_POLICIES.checkout.duration_validate`"
+    raise NotImplementedConfigurationError(
+        config_variable="CIRCULATION_POLICIES.checkout.duration_validate"
     )
 
 
 def get_default_extension_duration(loan):
     """Return a default extension duration in number of days."""
-    raise NotImplementedError(
-        "Function is not implemented. \
-        Implement this function in your module and pass it to \
-        the config variable `CIRCULATION_POLICIES.extension.duration_default`"
+    raise NotImplementedConfigurationError(
+        config_variable="CIRCULATION_POLICIES.extension.duration_default"
     )
 
 
 def get_default_extension_max_count(loan):
     """Return a default extensions max count."""
-    raise NotImplementedError(
-        "Function is not implemented. \
-        Implement this function in your module and pass it to \
-        the config variable `CIRCULATION_POLICIES.extension.max_count`"
+    raise NotImplementedConfigurationError(
+        config_variable="CIRCULATION_POLICIES.extension.max_count"
     )
 
 

@@ -10,7 +10,9 @@
 
 import pytest
 
-from invenio_circulation.errors import TransitionConstraintsViolation
+from invenio_circulation.errors import ItemDoNotMatchError, \
+    ItemNotAvailableError, MissingRequiredParameterError, \
+    TransitionConstraintsViolationError
 from invenio_circulation.pidstore.fetchers import loan_pid_fetcher
 from invenio_circulation.proxies import current_circulation
 
@@ -19,7 +21,7 @@ from .helpers import SwappedConfig
 
 def test_should_fail_when_missing_required_params(loan_created):
     """Test that transition fails when there required params are missing."""
-    with pytest.raises(TransitionConstraintsViolation):
+    with pytest.raises(MissingRequiredParameterError):
         current_circulation.circulation.trigger(
             loan_created, **dict(patron_pid="pid", trigger="checkout")
         )
@@ -27,7 +29,7 @@ def test_should_fail_when_missing_required_params(loan_created):
 
 def test_should_fail_when_item_not_exist(loan_created, params):
     """Test that transition fails when loan item do not exists."""
-    with pytest.raises(TransitionConstraintsViolation):
+    with pytest.raises(ItemNotAvailableError):
         with SwappedConfig("CIRCULATION_ITEM_EXISTS", lambda x: False):
             current_circulation.circulation.trigger(
                 loan_created, **dict(params, trigger="checkout")
@@ -47,13 +49,13 @@ def test_should_fail_when_item_is_changed(
     db.session.commit()
 
     params["item_pid"] = "different_item_pid"
-    with pytest.raises(TransitionConstraintsViolation):
+    with pytest.raises(ItemDoNotMatchError):
         current_circulation.circulation.trigger(loan, **dict(params))
 
 
 def test_should_fail_when_patron_not_exist(loan_created, params):
     """Test that transition fails when loan patron do not exists."""
-    with pytest.raises(TransitionConstraintsViolation):
+    with pytest.raises(TransitionConstraintsViolationError):
         with SwappedConfig("CIRCULATION_PATRON_EXISTS", lambda x: False):
             current_circulation.circulation.trigger(
                 loan_created, **dict(params, trigger="checkout")
@@ -73,7 +75,7 @@ def test_should_fail_when_patron_is_changed(
     db.session.commit()
 
     params["patron_pid"] = "different_patron_pid"
-    with pytest.raises(TransitionConstraintsViolation):
+    with pytest.raises(TransitionConstraintsViolationError):
         current_circulation.circulation.trigger(loan, **dict(params))
 
 

@@ -15,9 +15,10 @@ from flask import current_app
 from invenio_db import db
 
 from ..api import is_item_available
-from ..errors import InvalidCirculationPermission, InvalidState, \
-    ItemNotAvailable, TransitionConditionsFailed, \
-    TransitionConstraintsViolation
+from ..errors import InvalidLoanStateError, InvalidPermissionError, \
+    ItemDoNotMatchError, ItemNotAvailableError, \
+    MissingRequiredParameterError, TransitionConditionsFailedError, \
+    TransitionConstraintsViolationError
 from ..proxies import current_circulation
 from ..signals import loan_state_changed
 from ..utils import parse_date
@@ -30,22 +31,22 @@ def ensure_same_item_patron(f):
         new_item_pid = kwargs.get('item_pid')
 
         if not current_app.config['CIRCULATION_ITEM_EXISTS'](new_item_pid):
-            msg = 'Item `{0}` not found in the system'.format(new_item_pid)
-            raise TransitionConstraintsViolation(msg=msg)
+            msg = "Item '{0}' not found in the system".format(new_item_pid)
+            raise ItemNotAvailableError(description=msg)
 
         if loan.get('item_pid') and new_item_pid != loan['item_pid']:
-            msg = 'Loan item is `{0}` but transition is trying to set it to ' \
-                  '`{1}`'.format(loan['item_pid'], new_item_pid)
-            raise TransitionConstraintsViolation(msg=msg)
+            msg = "Loan item is '{0}' but transition is trying to set it to " \
+                  "'{1}'".format(loan['item_pid'], new_item_pid)
+            raise ItemDoNotMatchError(description=msg)
 
         if not current_app.config['CIRCULATION_PATRON_EXISTS'](new_patron_pid):
-            msg = 'Patron `{0}` not found in the system'.format(new_patron_pid)
-            raise TransitionConstraintsViolation(msg=msg)
+            msg = "Patron '{0}' not found in the system".format(new_patron_pid)
+            raise TransitionConstraintsViolationError(description=msg)
 
         if 'patron_pid' in loan and new_patron_pid != loan['patron_pid']:
-            msg = 'Loan patron is `{0}` but transition is trying to set it ' \
-                  'to `{1}`'.format(loan['patron_pid'], new_patron_pid)
-            raise TransitionConstraintsViolation(msg=msg)
+            msg = "Loan patron is '{0}' but transition is trying to set it " \
+                  "to '{1}'".format(loan['patron_pid'], new_patron_pid)
+            raise TransitionConstraintsViolationError(description=msg)
 
         return f(self, loan, **kwargs)
     return inner
@@ -56,13 +57,13 @@ def ensure_required_params(f):
     def inner(self, loan, **kwargs):
         missing = [p for p in self.REQUIRED_PARAMS if p not in kwargs]
         if missing:
-            msg = 'Required input parameters are missing `[{}]`'\
+            msg = "Required input parameters are missing '[{}]'" \
                 .format(missing)
-            raise TransitionConstraintsViolation(msg=msg)
+            raise MissingRequiredParameterError(description=msg)
         if all(param not in kwargs for param in self.PARTIAL_REQUIRED_PARAMS):
-            msg = 'One of the parameters `[{}]` must be passed.'\
-                .format(missing)
-            raise TransitionConstraintsViolation(msg=msg)
+            msg = "One of the parameters '[{}]' must be passed."\
+                .format(self.PARTIAL_REQUIRED_PARAMS)
+            raise MissingRequiredParameterError(description=msg)
         return f(self, loan, **kwargs)
     return inner
 
@@ -71,8 +72,8 @@ def check_trigger(f):
     """Decorate to check the transition should be manually triggered."""
     def inner(self, loan, **kwargs):
         if kwargs.get('trigger', 'next') != self.trigger:
-            msg = 'No param `trigger` with value `{0}`.'.format(self.trigger)
-            raise TransitionConditionsFailed(msg=msg)
+            msg = "No param 'trigger' with value '{0}'.".format(self.trigger)
+            raise TransitionConditionsFailedError(description=msg)
         return f(self, loan, **kwargs)
     return inner
 
@@ -105,21 +106,21 @@ class Transition(object):
     def ensure_item_is_available(self, loan):
         """Validate that an item is available."""
         if 'item_pid' not in loan:
-            msg = 'Item not set for loan'.format(loan['loan_pid'])
-            raise TransitionConstraintsViolation(msg=msg)
+            msg = "Item not set for loan with pid '{}'".format(loan.id)
+            raise TransitionConstraintsViolationError(description=msg)
 
         if not is_item_available(loan['item_pid']):
-            msg = 'Invalid transition to {0}: Item {1} is unavailable.'\
-                .format(self.dest, loan['item_pid'])
-            raise ItemNotAvailable(msg)
+            raise ItemNotAvailableError(
+                item_pid=loan['item_pid'], transition=self.dest
+            )
 
     def validate_transition_states(self):
         """Ensure that source and destination states are valid."""
         states = current_app.config['CIRCULATION_LOAN_TRANSITIONS'].keys()
         if not all([self.src in states, self.dest in states]):
-            msg = 'Source state `{0}` or destination state `{1}` not in [{2}]'\
+            msg = "Source state '{0}' or destination state '{1}' not in [{2}]"\
                 .format(self.src, self.dest, states)
-            raise InvalidState(msg=msg)
+            raise InvalidLoanStateError(description=msg)
 
     @check_trigger
     @ensure_required_params
@@ -127,8 +128,9 @@ class Transition(object):
     def before(self, loan, **kwargs):
         """Validate input, evaluate conditions and raise if failed."""
         if self.permission_factory and not self.permission_factory(loan).can():
-            msg = 'Invalid circulation permission'
-            raise InvalidCirculationPermission(msg=msg)
+            raise InvalidPermissionError(
+                permission=self.permission_factory(loan)
+            )
 
         kwargs.setdefault('transaction_date', datetime.now())
         kwargs['transaction_date'] = parse_date(kwargs['transaction_date'])
