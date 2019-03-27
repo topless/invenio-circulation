@@ -7,6 +7,11 @@
 Changes
 =======
 
+Version 1.0.0a10 (released 2019-03-27)
+
+- Fix for permissions check
+
+
 Version 1.0.0a9 (released 2019-03-25)
 
 - Introduce Circulation Exceptions
