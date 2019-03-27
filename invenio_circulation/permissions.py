@@ -25,7 +25,9 @@ def check_permission(permission):
 
     :param permission: The permission to check.
     """
-    if permission and not permission.can():
+    # NOTE: we have to explicitly check for not None, since flask-principal
+    # overrides the default __bool__ implementation for permission.
+    if permission is not None and not permission.can():
         if not current_user.is_authenticated:
             abort(401)
         abort(403)
