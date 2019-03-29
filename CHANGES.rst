@@ -7,6 +7,10 @@
 Changes
 =======
 
+Version 1.0.0a11 (released 2019-03-29)
+
+- Add sort options to search api
+
 Version 1.0.0a10 (released 2019-03-27)
 
 - Fix for permissions check
