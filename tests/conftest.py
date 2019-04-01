@@ -51,6 +51,8 @@ def app_config(app_config):
     app_config["CIRCULATION_PATRON_EXISTS"] = patron_exists
     app_config["CIRCULATION_ITEM_REF_BUILDER"] = item_ref_builder
     app_config["CIRCULATION_ITEM_LOCATION_RETRIEVER"] = item_location_retriever
+    app_config["CIRCULATION_DOCUMENT_RETRIEVER_FROM_ITEM"] = \
+        lambda x: "document_pid"
     app_config["CIRCULATION_POLICIES"] = dict(
         checkout=dict(
             duration_default=get_default_loan_duration,
@@ -86,6 +88,7 @@ def params():
     return dict(
         transaction_user_pid="user_pid",
         patron_pid="patron_pid",
+        document_pid="document_pid",
         item_pid="item_pid",
         transaction_location_pid="loc_pid",
         transaction_date="2018-02-01T09:30:00+02:00",

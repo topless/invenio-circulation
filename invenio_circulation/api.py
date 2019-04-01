@@ -34,8 +34,9 @@ class Loan(Record):
         """Create Loan record."""
         data["$schema"] = current_jsonschemas.path_to_url(cls._schema)
         ref_builder = current_app.config.get("CIRCULATION_ITEM_REF_BUILDER")
-        item_attached = data.get("item_pid") and data["item_pid"] != ""
-        if ref_builder and item_attached:
+        item_pid = data.get("item_pid")
+        if ref_builder and item_pid:
+            data["document_pid"] = get_document_pid_by_item_pid(item_pid)
             data["item"] = current_app.config["CIRCULATION_ITEM_REF_BUILDER"](
                 data["loan_pid"]
             )
@@ -108,7 +109,7 @@ def get_items_by_doc_pid(document_pid):
     )
 
 
-def get_document_by_item_pid(item_pid):
+def get_document_pid_by_item_pid(item_pid):
     """Return the document pid of this item_pid."""
     return current_app.config["CIRCULATION_DOCUMENT_RETRIEVER_FROM_ITEM"](
         item_pid
