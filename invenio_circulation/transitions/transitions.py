@@ -14,7 +14,7 @@ from flask import current_app
 from invenio_db import db
 
 from ..api import can_be_requested, get_available_item_by_doc_pid, \
-    get_document_by_item_pid, get_pending_loans_by_doc_pid
+    get_document_pid_by_item_pid, get_pending_loans_by_doc_pid
 from ..errors import LoanMaxExtensionError, RecordCannotBeRequestedError, \
     TransitionConditionsFailedError, TransitionConstraintsViolationError
 from ..transitions.base import Transition
@@ -51,7 +51,7 @@ def _ensure_item_attached_to_loan(loan):
 
 def _update_document_pending_request_for_item(item_pid):
     """."""
-    document_pid = get_document_by_item_pid(item_pid)
+    document_pid = get_document_pid_by_item_pid(item_pid)
     for loan in get_pending_loans_by_doc_pid(document_pid):
         loan['item_pid'] = item_pid
         loan.commit()
