@@ -35,7 +35,7 @@ class LoansSearch(RecordsSearch):
 
 
 def search_by_pid(item_pid=None, document_pid=None, filter_states=None,
-                  exclude_states=None):
+                  exclude_states=None, sort_by_field=None, sort_order="asc"):
     """Retrieve loans attached to the given item or document."""
     search = current_circulation.loan_search
 
@@ -53,6 +53,9 @@ def search_by_pid(item_pid=None, document_pid=None, filter_states=None,
         search = search.filter("terms", state=filter_states)
     elif exclude_states:
         search = search.exclude("terms", state=exclude_states)
+
+    if sort_by_field:
+        search = search.sort({sort_by_field: {"order": sort_order}})
 
     return search
 
