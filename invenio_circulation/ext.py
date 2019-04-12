@@ -118,7 +118,6 @@ class _Circulation(object):
                 t.execute(loan, **kwargs)
                 return loan
             except TransitionConditionsFailedError as ex:
-                current_app.logger.exception(ex)
                 pass
 
         raise NoValidTransitionAvailableError(
