@@ -54,13 +54,13 @@ class Loan(Record):
         return record
 
 
-def is_item_available(item_pid):
+def is_item_available_for_checkout(item_pid):
     """Return True if the given item is available for loan, False otherwise."""
     config = current_app.config
-    cfg_item_available = config["CIRCULATION_POLICIES"]["checkout"].get(
-        "item_available"
+    cfg_item_can_circulate = config["CIRCULATION_POLICIES"]["checkout"].get(
+        "item_can_circulate"
     )
-    if not cfg_item_available(item_pid):
+    if not cfg_item_can_circulate(item_pid):
         return False
 
     search = search_by_pid(
@@ -97,7 +97,7 @@ def get_pending_loans_by_doc_pid(document_pid):
 def get_available_item_by_doc_pid(document_pid):
     """Return an item pid available for this document."""
     for item_pid in get_items_by_doc_pid(document_pid):
-        if is_item_available(item_pid):
+        if is_item_available_for_checkout(item_pid):
             return item_pid
     return None
 

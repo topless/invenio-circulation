@@ -21,8 +21,8 @@ def item_exists(item_pid):
     return True
 
 
-def is_item_available(item_pid):
-    """Return if item is available for checkout."""
+def item_can_circulate(item_pid):
+    """Return True if the item can circulate, False otherwise."""
     return True
 
 

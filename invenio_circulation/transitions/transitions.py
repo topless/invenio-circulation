@@ -97,7 +97,7 @@ class ToItemOnLoan(Transition):
         """Validate checkout action."""
         super(ToItemOnLoan, self).before(loan, **kwargs)
 
-        self.ensure_item_is_available(loan)
+        self.ensure_item_is_available_for_checkout(loan)
 
         if loan.get('start_date'):
             loan['start_date'] = parse_date(loan['start_date'])

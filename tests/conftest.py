@@ -31,7 +31,7 @@ from invenio_circulation.pidstore.minters import loan_pid_minter
 from .helpers import create_loan, test_views_permissions_factory
 from .utils import can_be_requested, get_default_extension_duration, \
     get_default_extension_max_count, get_default_loan_duration, \
-    is_item_available, is_loan_duration_valid, item_exists, \
+    is_loan_duration_valid, item_can_circulate, item_exists, \
     item_location_retriever, item_ref_builder, patron_exists
 
 
@@ -57,7 +57,7 @@ def app_config(app_config):
         checkout=dict(
             duration_default=get_default_loan_duration,
             duration_validate=is_loan_duration_valid,
-            item_available=is_item_available,
+            item_can_circulate=item_can_circulate,
         ),
         extension=dict(
             from_end_date=True,
@@ -139,12 +139,13 @@ def indexed_loans(es, test_loans):
 
 
 @pytest.fixture()
-def mock_is_item_available():
+def mock_is_item_available_for_checkout():
     """Mock item_available check."""
-    path = "invenio_circulation.transitions.base.is_item_available"
-    with mock.patch(path) as mock_is_item_available:
-        mock_is_item_available.return_value = True
-        yield mock_is_item_available
+    path = \
+        "invenio_circulation.transitions.base.is_item_available_for_checkout"
+    with mock.patch(path) as mock_is_item_available_for_checkout:
+        mock_is_item_available_for_checkout.return_value = True
+        yield mock_is_item_available_for_checkout
 
 
 @pytest.fixture()

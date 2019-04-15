@@ -50,7 +50,8 @@ def _post(app, json_headers, params, pid_value, action):
 
 
 def test_rest_explicit_loan_valid_action(
-    app, json_headers, params, mock_is_item_available, loan_created
+    app, json_headers, params, mock_is_item_available_for_checkout,
+    loan_created
 ):
     """Test API valid action on loan."""
     loan_pid = loan_pid_fetcher(loan_created.id, loan_created)
@@ -86,7 +87,8 @@ def test_rest_automatic_loan_valid_action(
 
 
 def test_rest_loan_invalid_action(
-    app, json_headers, params, mock_is_item_available, loan_created
+    app, json_headers, params, mock_is_item_available_for_checkout,
+    loan_created
 ):
     """Test API invalid action on loan."""
     loan = current_circulation.circulation.trigger(

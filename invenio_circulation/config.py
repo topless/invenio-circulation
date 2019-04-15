@@ -23,7 +23,7 @@ from .transitions.transitions import CreatedToPending, \
     PendingToItemInTransitPickup, ToItemOnLoan
 from .utils import can_be_requested, get_default_extension_duration, \
     get_default_extension_max_count, get_default_loan_duration, \
-    is_item_available, is_loan_duration_valid, item_exists, \
+    is_loan_duration_valid, item_can_circulate, item_exists, \
     item_location_retriever, item_ref_builder, patron_exists
 
 CIRCULATION_ITEMS_RETRIEVER_FROM_DOCUMENT = None
@@ -114,7 +114,7 @@ CIRCULATION_POLICIES = dict(
     checkout=dict(
         duration_default=get_default_loan_duration,
         duration_validate=is_loan_duration_valid,
-        item_available=is_item_available
+        item_can_circulate=item_can_circulate,
     ),
     extension=dict(
         from_end_date=True,

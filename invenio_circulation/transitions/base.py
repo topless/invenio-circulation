@@ -14,7 +14,7 @@ from datetime import datetime
 from flask import current_app
 from invenio_db import db
 
-from ..api import is_item_available
+from ..api import is_item_available_for_checkout
 from ..errors import InvalidLoanStateError, InvalidPermissionError, \
     ItemDoNotMatchError, ItemNotAvailableError, \
     MissingRequiredParameterError, TransitionConditionsFailedError, \
@@ -103,13 +103,13 @@ class Transition(object):
             'CIRCULATION_LOAN_TRANSITIONS_DEFAULT_PERMISSION_FACTORY']
         self.validate_transition_states()
 
-    def ensure_item_is_available(self, loan):
+    def ensure_item_is_available_for_checkout(self, loan):
         """Validate that an item is available."""
         if 'item_pid' not in loan:
             msg = "Item not set for loan with pid '{}'".format(loan.id)
             raise TransitionConstraintsViolationError(description=msg)
 
-        if not is_item_available(loan['item_pid']):
+        if not is_item_available_for_checkout(loan['item_pid']):
             raise ItemNotAvailableError(
                 item_pid=loan['item_pid'], transition=self.dest
             )

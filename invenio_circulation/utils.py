@@ -43,10 +43,10 @@ def item_location_retriever(item_pid):
     )
 
 
-def is_item_available(item_pid):
+def item_can_circulate(item_pid):
     """Return if item is available for checkout."""
     raise NotImplementedConfigurationError(
-        config_variable="CIRCULATION_POLICIES.checkout.is_item_available"
+        config_variable="CIRCULATION_POLICIES.checkout.item_can_circulate"
     )
 
 

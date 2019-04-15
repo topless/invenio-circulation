@@ -80,7 +80,7 @@ def test_should_fail_when_patron_is_changed(
 
 
 def test_persist_loan_parameters(
-    loan_created, db, params, mock_is_item_available
+    loan_created, db, params, mock_is_item_available_for_checkout
 ):
     """Test that input params are correctly persisted."""
     loan_pid = loan_pid_fetcher(loan_created.id, loan_created)

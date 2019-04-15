@@ -29,7 +29,7 @@ def test_state_enum(app):
 
 
 def test_state_checkout_with_loan_pid(
-    loan_created, db, params, mock_is_item_available
+    loan_created, db, params, mock_is_item_available_for_checkout
 ):
     """Test that created Loan validates after a checkout action."""
     new_params = deepcopy(params)
