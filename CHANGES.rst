@@ -7,6 +7,10 @@
 Changes
 =======
 
+Version 1.0.0a12 (released 2019-04-17)
+
+- Renamed is_item_available circulation policy to item_can_circulate.
+
 Version 1.0.0a11 (released 2019-03-29)
 
 - Add sort options to search api
