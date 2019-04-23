@@ -94,5 +94,6 @@ def test_persist_loan_parameters(
     params["start_date"] = loan["start_date"]
     params["end_date"] = loan["end_date"]
     params["trigger"] = loan["trigger"]
+    params["item"] = {"ref": "6"}
     params["$schema"] = "https://localhost:5000/schema/loans/loan-v1.0.0.json"
     assert loan == params

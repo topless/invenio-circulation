@@ -27,6 +27,8 @@ class Loan(Record):
     def __init__(self, data, model=None):
         """."""
         self["state"] = current_app.config["CIRCULATION_LOAN_INITIAL_STATE"]
+        self.item_ref_builder = current_app.config.get(
+            "CIRCULATION_ITEM_REF_BUILDER")
         super(Loan, self).__init__(data, model)
 
     @classmethod
@@ -37,9 +39,7 @@ class Loan(Record):
         item_pid = data.get("item_pid")
         if ref_builder and item_pid:
             data["document_pid"] = get_document_pid_by_item_pid(item_pid)
-            data["item"] = current_app.config["CIRCULATION_ITEM_REF_BUILDER"](
-                data["loan_pid"]
-            )
+            data["item"] = ref_builder(data["loan_pid"])
         return super(Loan, cls).create(data, id_=id_, **kwargs)
 
     @classmethod
@@ -52,6 +52,26 @@ class Loan(Record):
         )
         persistent_identifier, record = resolver.resolve(str(pid))
         return record
+
+    def attach_item_ref(self):
+        """Attach item reference."""
+        item_pid = self.get("item_pid")
+        if not item_pid:
+            raise MissingRequiredParameterError(
+                description='item_pid missing from loan {0}'.format(
+                    self['loan_pid']))
+        if self.item_ref_builder:
+            self["item"] = self.item_ref_builder(self['loan_pid'])
+
+    def update_item_ref(self, data):
+        """Replace item reference."""
+        new_item_pid = data.get("item_pid")
+        if not new_item_pid:
+            raise MissingRequiredParameterError(
+                description='item_pid missing from provided parameters {0}'
+                .format(self['loan_pid']))
+        self["item_pid"] = new_item_pid
+        self.attach_item_ref()
 
 
 def is_item_available_for_checkout(item_pid):

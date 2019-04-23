@@ -33,7 +33,9 @@ def test_loan_replace_item(app, json_headers, params, indexed_loans):
     res, data = _post(app, json_headers, loan, payload)
     assert res.status == "202 ACCEPTED"
     assert data["metadata"]["item_pid"] == payload["item_pid"]
-    assert data["metadata"]["item"]["ref"] == payload["item_pid"]
+    # the ref won't change as it is pointing back to loan (it will
+    # resolve by loan endpoint)
+    assert data["metadata"]["item"]["ref"] == loan["loan_pid"]
 
 
 def test_loan_replace_item_inactive_state(

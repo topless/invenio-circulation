@@ -32,9 +32,9 @@ def can_be_requested(loan):
 
 
 # NOTE: Its on purpose `ref` and not `$ref` so it doesn't try to resolve
-def item_ref_builder(item_pid):
+def item_ref_builder(loan_pid):
     """Return the $ref for item_pid."""
-    return {"ref": "{}".format(item_pid)}
+    return {"ref": "{}".format(loan_pid)}
 
 
 def item_location_retriever(item_pid):

@@ -110,6 +110,8 @@ class ToItemOnLoan(Transition):
         """Convert dates to string before saving loan."""
         loan['start_date'] = loan['start_date'].isoformat()
         loan['end_date'] = loan['end_date'].isoformat()
+        if 'item' not in loan:
+            loan.attach_item_ref()
         super(ToItemOnLoan, self).after(loan)
 
 

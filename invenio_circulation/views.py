@@ -217,15 +217,6 @@ def validate_replace_item(loan, data):
         raise ItemNotAvailableError(item_pid=item_pid)
 
 
-def loan_update(loan, data):
-    """Update loan with new properties."""
-    item_ref_builder = current_app.config.get("CIRCULATION_ITEM_REF_BUILDER")
-    item_pid = data.get("item_pid")
-    loan["item_pid"] = item_pid
-    loan["item"] = item_ref_builder(item_pid)
-    return loan
-
-
 class LoanReplaceItemResource(ContentNegotiatedMethodView):
     """Loan update resource."""
 
@@ -246,7 +237,8 @@ class LoanReplaceItemResource(ContentNegotiatedMethodView):
         old_item_pid = record["item_pid"]
         data = request.get_json()
         validate_replace_item(record, data)
-        record = loan_update(record, data)
+        record.update_item_ref(data)
+        record.commit()
         db.session.commit()
 
         current_circulation.loan_indexer.index(record)
