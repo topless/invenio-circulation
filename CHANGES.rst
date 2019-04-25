@@ -6,6 +6,9 @@
 
 Changes
 =======
+Version 1.0.0a13 (released 2019-04-24)
+
+- fixed item reference attachment on checkout
 
 Version 1.0.0a12 (released 2019-04-17)
 
