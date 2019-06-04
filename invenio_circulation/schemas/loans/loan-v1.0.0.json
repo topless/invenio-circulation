@@ -90,6 +90,10 @@
           "type": "string"
         }
       }
+    },
+    "cancel_reason": {
+      "type": "string",
+      "title": "Reason for cancelling the loan"
     }
   }
 }

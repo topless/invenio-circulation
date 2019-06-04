@@ -48,6 +48,9 @@
         "transaction_user_pid": {
           "type": "keyword"
         },
+        "cancel_reason": {
+          "type": "keyword"
+        },
         "_created": {
           "type": "date"
         },
