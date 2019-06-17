@@ -25,14 +25,15 @@ from invenio_records_rest.utils import allow_all
 from invenio_search import current_search
 
 from invenio_circulation.api import Loan
+from invenio_circulation.errors import ItemNotAvailableError
 from invenio_circulation.permissions import loan_access
 from invenio_circulation.pidstore.minters import loan_pid_minter
 
 from .helpers import create_loan, test_views_permissions_factory
-from .utils import can_be_requested, get_default_extension_duration, \
-    get_default_extension_max_count, get_default_loan_duration, \
-    is_loan_duration_valid, item_can_circulate, item_exists, \
-    item_location_retriever, item_ref_builder, patron_exists
+from .utils import can_be_requested, document_exists, \
+    get_default_extension_duration, get_default_extension_max_count, \
+    get_default_loan_duration, is_loan_duration_valid, item_can_circulate, \
+    item_exists, item_location_retriever, item_ref_builder, patron_exists
 
 
 @pytest.fixture(scope="module")
@@ -48,6 +49,7 @@ def app_config(app_config):
     app_config["JSONSCHEMAS_HOST"] = "localhost:5000"
     app_config["RECORDS_REST_DEFAULT_READ_PERMISSION_FACTORY"] = allow_all
     app_config["CIRCULATION_ITEM_EXISTS"] = item_exists
+    app_config["CIRCULATION_DOCUMENT_EXISTS"] = document_exists
     app_config["CIRCULATION_PATRON_EXISTS"] = patron_exists
     app_config["CIRCULATION_ITEM_REF_BUILDER"] = item_ref_builder
     app_config["CIRCULATION_ITEM_LOCATION_RETRIEVER"] = item_location_retriever
@@ -142,10 +144,32 @@ def indexed_loans(es, test_loans):
 def mock_is_item_available_for_checkout():
     """Mock item_available check."""
     path = \
-        "invenio_circulation.transitions.base.is_item_available_for_checkout"
+        "invenio_circulation.api.is_item_available_for_checkout"
     with mock.patch(path) as mock_is_item_available_for_checkout:
-        mock_is_item_available_for_checkout.return_value = True
+        mock_is_item_available_for_checkout.return_value = False
         yield mock_is_item_available_for_checkout
+
+
+@pytest.fixture()
+def mock_get_pending_loans_by_doc_pid():
+    """Mock item_available check."""
+    path = \
+        "invenio_circulation.transitions.transitions" \
+        ".get_pending_loans_by_doc_pid"
+    # assert path exists
+    with mock.patch(path) as mock_get_pending_loans_by_doc_pid:
+        mock_get_pending_loans_by_doc_pid.return_value = False
+        yield mock_get_pending_loans_by_doc_pid
+
+
+@pytest.fixture()
+def mock_ensure_item_is_available_for_checkout():
+    """Mock ensure_item_is_available_for_checkout."""
+    path = \
+        "invenio_circulation.transitions.base.Transition" \
+        ".ensure_item_is_available_for_checkout"
+    with mock.patch(path) as mock_ensure_item_is_available_for_checkout:
+        yield mock_ensure_item_is_available_for_checkout
 
 
 @pytest.fixture()

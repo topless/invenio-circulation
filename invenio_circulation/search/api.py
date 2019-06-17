@@ -60,12 +60,17 @@ def search_by_pid(item_pid=None, document_pid=None, filter_states=None,
     return search
 
 
-def search_by_patron_item(patron_pid, item_pid, filter_states=None):
+def search_by_patron_item_or_document(patron_pid, item_pid=None,
+                                      document_pid=None, filter_states=None):
     """Retrieve loans for patron given an item."""
     search = current_circulation.loan_search
     search = search \
-        .filter("term", patron_pid=patron_pid) \
-        .filter("term", item_pid=item_pid)
+        .filter("term", patron_pid=patron_pid)
+
+    if item_pid:
+        search = search.filter("term", item_pid=item_pid)
+    if document_pid:
+        search = search.filter("term", document_pid=document_pid)
 
     if filter_states:
         search = search.filter("terms", state=filter_states)

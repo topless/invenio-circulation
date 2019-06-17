@@ -7,34 +7,32 @@
 # it under the terms of the MIT License; see LICENSE file for more details.
 
 """Tests for loan states."""
-
+import copy
 from datetime import timedelta
 
-import mock
 import pytest
 from flask import current_app
 from flask_security import login_user
 
 from invenio_circulation.api import Loan, is_item_available_for_checkout
-from invenio_circulation.errors import ItemNotAvailableError, \
-    LoanMaxExtensionError, NoValidTransitionAvailableError, \
-    RecordCannotBeRequestedError, TransitionConstraintsViolationError
+from invenio_circulation.errors import ItemDoNotMatchError, \
+    ItemNotAvailableError, LoanMaxExtensionError, \
+    NoValidTransitionAvailableError, RecordCannotBeRequestedError, \
+    TransitionConstraintsViolationError
 from invenio_circulation.proxies import current_circulation
 from invenio_circulation.utils import parse_date
 
 from .helpers import SwappedConfig, SwappedNestedConfig
 
 
-@mock.patch(
-    "invenio_circulation.transitions.transitions"
-    ".get_pending_loans_by_doc_pid"
-)
 def test_loan_checkout_checkin(
-    mock_pending_loans_for_document, loan_created, db, params,
+    mock_get_pending_loans_by_doc_pid, loan_created, db, params,
     mock_is_item_available_for_checkout
 ):
     """Test loan checkout and checkin actions."""
-    mock_pending_loans_for_document.return_value = []
+
+    mock_get_pending_loans_by_doc_pid.return_value = []
+    mock_is_item_available_for_checkout.return_value = True
     assert loan_created["state"] == "CREATED"
 
     loan = current_circulation.circulation.trigger(
@@ -53,25 +51,122 @@ def test_loan_checkout_checkin(
         assert loan["state"] == "ITEM_RETURNED"
 
 
-def test_loan_request(loan_created, db, params):
-    """Test loan request action."""
-    assert loan_created["state"] == "CREATED"
+def test_can_change_item_and_loc_pid_before_checkout(
+    mock_get_pending_loans_by_doc_pid, loan_created, db, params,
+    mock_is_item_available_for_checkout
+):
+    """Test that item pid can be changed before the item is on loan."""
 
-    loan = current_circulation.circulation.trigger(
-        loan_created,
-        **dict(
-            params,
-            trigger="request",
-            pickup_location_pid="pickup_location_pid",
-        )
-    )
+    mock_get_pending_loans_by_doc_pid.return_value = []
+    mock_is_item_available_for_checkout.return_value = True
+    item_pid = params['item_pid']
+    del params['item_pid']
+
+    # auto assign both available item pid and the location corresponding to it
+    with SwappedConfig(
+        "CIRCULATION_ITEMS_RETRIEVER_FROM_DOCUMENT", lambda x: [item_pid]
+    ):
+        with SwappedConfig(
+            "CIRCULATION_ITEM_LOCATION_RETRIEVER",
+            lambda x: "pickup_location_pid"
+        ):
+            loan = current_circulation.circulation.trigger(
+                loan_created, **dict(params, trigger="request")
+            )
+
     db.session.commit()
     assert loan["state"] == "PENDING"
+    assert loan["pickup_location_pid"] == "pickup_location_pid"
+    assert loan["item_pid"] == "item_pid"
+
+    with SwappedConfig(
+        "CIRCULATION_ITEM_LOCATION_RETRIEVER", lambda x: "pickup_location_pid"
+    ):
+        changed_loan = copy.deepcopy(loan)
+        changed_loan = current_circulation.circulation.trigger(
+            changed_loan,
+            **dict(params, trigger="next", item_pid="other_item_pid_1",
+                   pickup_location_pid="other_location_pid_1"))
+        db.session.commit()
+        assert changed_loan["state"] == "ITEM_IN_TRANSIT_FOR_PICKUP"
+        assert changed_loan["item_pid"] == "other_item_pid_1"
+        assert changed_loan["pickup_location_pid"] == "other_location_pid_1"
+
+        changed_loan = copy.deepcopy(loan)
+        changed_loan = current_circulation.circulation.trigger(
+            changed_loan,
+            **dict(params, trigger="next", item_pid="other_item_pid_2"))
+        db.session.commit()
+        assert changed_loan["state"] == "ITEM_AT_DESK"
+        assert changed_loan["item_pid"] == "other_item_pid_2"
+        assert changed_loan["pickup_location_pid"] == "pickup_location_pid"
+
+        changed_loan = copy.deepcopy(loan)
+        changed_loan = current_circulation.circulation.trigger(
+            changed_loan,
+            **dict(params, trigger="checkout", item_pid="other_item_pid_3",
+                   pickup_location_pid="other_location_pid_3"))
+        db.session.commit()
+        assert changed_loan["state"] == "ITEM_ON_LOAN"
+        assert changed_loan["item_pid"] == "other_item_pid_3"
+        assert changed_loan["pickup_location_pid"] == "other_location_pid_3"
+
+
+# def test_assignment_of_pickup_location_pid
+
+def test_cannot_change_item_pid_after_checkout(
+    mock_get_pending_loans_by_doc_pid, loan_created, db, params,
+    mock_is_item_available_for_checkout
+):
+    """Test that item pid cannot be changed after the item is on loan."""
+    mock_get_pending_loans_by_doc_pid.return_value = []
+    mock_is_item_available_for_checkout.return_value = True
+    del params['item_pid']
+
+    # auto assign both available item pid and the location corresponding to it
+
+    with SwappedConfig(
+        "CIRCULATION_ITEM_LOCATION_RETRIEVER",
+        lambda x: "pickup_location_pid"
+    ):
+        loan = current_circulation.circulation.trigger(
+            loan_created, **dict(params, trigger="checkout",
+                                 item_pid="item_pid")
+        )
+
+    db.session.commit()
+    assert loan["state"] == "ITEM_ON_LOAN"
+    assert loan["item_pid"] == "item_pid"
+    assert loan["pickup_location_pid"] == "pickup_location_pid"
+
+    with SwappedConfig(
+        "CIRCULATION_ITEM_LOCATION_RETRIEVER", lambda x: "pickup_location_pid"
+    ):
+        changed_loan = copy.deepcopy(loan)
+        with pytest.raises(ItemDoNotMatchError):
+            current_circulation.circulation.trigger(
+                changed_loan,
+                **dict(params, trigger="next", item_pid="other_item_pid_1"))
+
+        changed_loan = copy.deepcopy(loan)
+        with pytest.raises(ItemDoNotMatchError):
+            current_circulation.circulation.trigger(
+                changed_loan,
+                **dict(params, trigger="extend", item_pid="other_item_pid_2"))
+
+        changed_loan = copy.deepcopy(loan)
+        with pytest.raises(ItemDoNotMatchError):
+            current_circulation.circulation.trigger(
+                changed_loan,
+                **dict(params, trigger="cancel", item_pid="other_item_pid_3"))
 
 
 def test_loan_extend(loan_created, db, params,
-                     mock_is_item_available_for_checkout):
+                     mock_ensure_item_is_available_for_checkout):
     """Test loan extend action."""
+
+    mock_ensure_item_is_available_for_checkout.side_effect = None
+
     loan = current_circulation.circulation.trigger(
         loan_created, **dict(params, trigger="checkout")
     )
@@ -118,9 +213,12 @@ def test_loan_extend(loan_created, db, params,
 
 
 def test_loan_extend_from_enddate(
-    loan_created, db, params, mock_is_item_available_for_checkout
+    loan_created, db, params, mock_ensure_item_is_available_for_checkout
 ):
     """Test loan extend action from transaction date."""
+
+    mock_ensure_item_is_available_for_checkout.side_effect = None
+
     loan = current_circulation.circulation.trigger(
         loan_created, **dict(params, trigger="checkout")
     )
@@ -140,15 +238,18 @@ def test_loan_extend_from_enddate(
 
 
 def test_cancel_action(loan_created, db, params,
-                       mock_is_item_available_for_checkout):
+                       mock_ensure_item_is_available_for_checkout):
     """Test should pass when calling `cancel` from `ITEM_ON_LOAN`."""
+
+    mock_ensure_item_is_available_for_checkout.side_effect = None
+
     loan = current_circulation.circulation.trigger(
         loan_created, **dict(params, trigger="checkout")
     )
     db.session.commit()
 
-    current_circulation.circulation.trigger(
-        loan_created, **dict(params, trigger="cancel")
+    loan = current_circulation.circulation.trigger(
+        loan, **dict(params, trigger="cancel")
     )
     assert loan["state"] == "CANCELLED"
 
@@ -182,32 +283,12 @@ def test_validate_item_in_transit_for_pickup(loan_created, db, params):
         assert loan["state"] == "ITEM_IN_TRANSIT_FOR_PICKUP"
 
 
-def test_validate_item_at_desk(loan_created, db, params):
-    """Test item validation to ITEM_AT_DESK state."""
-    loan = current_circulation.circulation.trigger(
-        loan_created,
-        **dict(
-            params,
-            trigger="request",
-            pickup_location_pid="pickup_location_pid",
-        )
-    )
-    db.session.commit()
-    assert loan["state"] == "PENDING"
-
-    with SwappedConfig(
-        "CIRCULATION_ITEM_LOCATION_RETRIEVER", lambda x: "pickup_location_pid"
-    ):
-        loan = current_circulation.circulation.trigger(
-            loan_created, **dict(params)
-        )
-        assert loan["state"] == "ITEM_AT_DESK"
-
-
 def test_checkout_start_is_transaction_date(
-    loan_created, db, params, mock_is_item_available_for_checkout
+    loan_created, db, params, mock_ensure_item_is_available_for_checkout
 ):
     """Test checkout start date to transaction date when not set."""
+    mock_ensure_item_is_available_for_checkout.side_effect = None
+
     number_of_days = 10
 
     with SwappedNestedConfig(
@@ -227,9 +308,12 @@ def test_checkout_start_is_transaction_date(
 
 
 def test_checkout_with_input_start_end_dates(
-    loan_created, db, params, mock_is_item_available_for_checkout
+    loan_created, db, params, mock_ensure_item_is_available_for_checkout
 ):
     """Test checkout start and end dates are set as input."""
+
+    mock_ensure_item_is_available_for_checkout.side_effect = None
+
     start_date = "2018-02-01T09:30:00+02:00"
     end_date = "2018-02-10T09:30:00+02:00"
     loan = current_circulation.circulation.trigger(
@@ -248,9 +332,12 @@ def test_checkout_with_input_start_end_dates(
 
 
 def test_checkout_fails_when_wrong_dates(
-    loan_created, params, mock_is_item_available_for_checkout
+    loan_created, params, mock_ensure_item_is_available_for_checkout
 ):
     """Test checkout fails when wrong input dates."""
+
+    mock_ensure_item_is_available_for_checkout.side_effect = None
+
     with pytest.raises(ValueError):
         current_circulation.circulation.trigger(
             loan_created,
@@ -264,9 +351,12 @@ def test_checkout_fails_when_wrong_dates(
 
 
 def test_checkout_fails_when_duration_invalid(
-    loan_created, params, mock_is_item_available_for_checkout
+    loan_created, params, mock_ensure_item_is_available_for_checkout
 ):
     """Test checkout fails when wrong max duration."""
+
+    mock_ensure_item_is_available_for_checkout.side_effect = None
+
     with pytest.raises(TransitionConstraintsViolationError):
         with SwappedNestedConfig(
             ["CIRCULATION_POLICIES", "checkout", "duration_validate"],
@@ -283,16 +373,14 @@ def test_checkout_fails_when_duration_invalid(
             )
 
 
-@mock.patch(
-    "invenio_circulation.transitions.transitions"
-    ".get_pending_loans_by_doc_pid"
-)
 def test_checkin_end_date_is_transaction_date(
-    mock_pending_loans_for_document, loan_created, db, params,
-    mock_is_item_available_for_checkout
+    mock_get_pending_loans_by_doc_pid,
+    mock_ensure_item_is_available_for_checkout,
+    loan_created, db, params
 ):
     """Test date the checkin date is the transaction date."""
-    mock_pending_loans_for_document.return_value = []
+    mock_get_pending_loans_by_doc_pid.return_value = []
+    mock_ensure_item_is_available_for_checkout.side_effect = None
     loan = current_circulation.circulation.trigger(
         loan_created,
         **dict(
@@ -328,43 +416,6 @@ def test_item_availability(indexed_loans):
     assert is_item_available_for_checkout(item_pid="no_loan")
 
 
-def test_checkout_on_unavailable_item(
-    loan_created, db, params, mock_is_item_available_for_checkout
-):
-    """Test checkout fails on unvailable item."""
-    mock_is_item_available_for_checkout.return_value = False
-
-    with pytest.raises(ItemNotAvailableError):
-        current_circulation.circulation.trigger(
-            loan_created, **dict(params, trigger="checkout")
-        )
-        loan_created["state"] = "ITEM_AT_DESK"
-        current_circulation.circulation.trigger(loan_created, **dict(params))
-
-
-def _loan_steps_created_to_on_loan(loan_created, params):
-    """Go step by step through all the transitions."""
-    # loan created
-    current_circulation.circulation.trigger(
-        loan_created, **dict(params, trigger="request")
-    )
-    # loan pending
-    current_circulation.circulation.trigger(
-        loan_created, **dict(params, trigger="next")
-    )
-    # item at desk
-    current_circulation.circulation.trigger(loan_created, **dict(params))
-    assert loan_created["state"] == "ITEM_ON_LOAN"
-
-
-def test_checkout_item(loan_created, db, params, users, app):
-    """Test standard checkout procedure."""
-    login_user(users['user'])
-    # set specific loan owner
-    params["patron_pid"] = "3"
-    _loan_steps_created_to_on_loan(loan_created, params)
-
-
 def test_checkout_item_unavailable_steps(
     loan_created, db, params, users, app
 ):
@@ -387,132 +438,6 @@ def test_checkout_item_unavailable_steps(
         current_circulation.circulation.trigger(
             loan_created, **dict(params, trigger="checkout")
         )
-
-
-@mock.patch("invenio_circulation.api.is_item_available_for_checkout")
-def test_request_on_document_with_available_items(
-    mock_available_item, loan_created, db, params
-):
-    """Test loan request action."""
-    mock_available_item.return_value = True
-    with SwappedConfig(
-        "CIRCULATION_ITEMS_RETRIEVER_FROM_DOCUMENT", lambda x: ["item_pid"]
-    ):
-        loan = current_circulation.circulation.trigger(
-            loan_created,
-            **dict(
-                params,
-                trigger="request",
-                item_pid=None,
-                document_pid="document_pid",
-                pickup_location_pid="pickup_location_pid",
-            )
-        )
-        db.session.commit()
-        assert loan["state"] == "PENDING"
-        assert loan["item_pid"] == "item_pid"
-        assert loan["document_pid"] == "document_pid"
-
-
-@mock.patch("invenio_circulation.api.is_item_available_for_checkout")
-def test_request_on_document_with_unavailable_items(
-    mock_available_item, loan_created, db, params
-):
-    """Test loan request action."""
-    mock_available_item.return_value = False
-    with SwappedConfig(
-        "CIRCULATION_ITEMS_RETRIEVER_FROM_DOCUMENT", lambda x: ["item_pid"]
-    ):
-        # remove item_pid
-        params.pop("item_pid")
-        loan = current_circulation.circulation.trigger(
-            loan_created,
-            **dict(
-                params,
-                trigger="request",
-                document_pid="document_pid",
-                pickup_location_pid="pickup_location_pid",
-            )
-        )
-        db.session.commit()
-        assert loan["state"] == "PENDING"
-        assert "item_pid" not in loan
-        assert loan["document_pid"] == "document_pid"
-
-
-@mock.patch(
-    "invenio_circulation.transitions.transitions"
-    ".get_pending_loans_by_doc_pid"
-)
-@mock.patch("invenio_circulation.api.is_item_available_for_checkout")
-def test_document_requests_on_item_returned(
-    mock_available_item, mock_pending_loans_for_document,
-    mock_is_item_available_for_checkout, loan_created, db, params
-):
-    """Test loan request action."""
-    # return item is not available
-    mock_available_item.return_value = False
-
-    with SwappedConfig(
-        "CIRCULATION_DOCUMENT_RETRIEVER_FROM_ITEM", lambda x: "document_pid"
-    ):
-        same_location = params["transaction_location_pid"]
-        with SwappedConfig(
-            "CIRCULATION_ITEM_LOCATION_RETRIEVER", lambda x: same_location
-        ):
-            # start a loan on item with pid 'item_pid'
-            new_loan = current_circulation.circulation.trigger(
-                loan_created,
-                **dict(
-                    params,
-                    trigger="checkout",
-                    item_pid="item_pid",
-                    pickup_location_pid="pickup_location_pid",
-                )
-            )
-            db.session.commit()
-            assert new_loan["state"] == "ITEM_ON_LOAN"
-
-            # create a new loan request on document_pid without items available
-            new_loan_created = Loan.create({
-                Loan.pid_field: "2"
-            })
-            # remove item_pid
-            params.pop("item_pid")
-            pending_loan = current_circulation.circulation.trigger(
-                new_loan_created,
-                **dict(
-                    params,
-                    trigger="request",
-                    document_pid="document_pid",
-                    pickup_location_pid="pickup_location_pid",
-                )
-            )
-            db.session.commit()
-            assert pending_loan["state"] == "PENDING"
-            # no item available found. Request is created with no item attached
-            assert "item_pid" not in pending_loan
-            assert pending_loan["document_pid"] == "document_pid"
-
-            # resolve pending document requests to `document_pid`
-            mock_pending_loans_for_document.return_value = [pending_loan]
-
-            returned_loan = current_circulation.circulation.trigger(
-                new_loan,
-                **dict(
-                    params,
-                    item_pid="item_pid",
-                    pickup_location_pid="pickup_location_pid",
-                )
-            )
-            db.session.commit()
-            assert returned_loan["state"] == "ITEM_RETURNED"
-
-            # item `item_pid` has been attached to pending loan request on
-            # `document_pid` automatically
-            assert pending_loan["state"] == "PENDING"
-            assert pending_loan["item_pid"] == "item_pid"
-            assert pending_loan["document_pid"] == "document_pid"
 
 
 def test_deny_request(loan_created, params):

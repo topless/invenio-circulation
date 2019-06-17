@@ -107,8 +107,24 @@ class ItemNotAvailableError(CirculationException):
         super(ItemNotAvailableError, self).__init__(**kwargs)
 
 
+class DocumentNotAvailableError(CirculationException):
+    """Exception raised from action on unavailable document."""
+
+    def __init__(self, document_pid=None, transition=None, **kwargs):
+        """Initialize exception."""
+        self.description = (
+            "The document requested with pid '{0}' is not available. "
+            "Transition to '{1}' has failed.".format(document_pid, transition)
+        )
+        super(DocumentNotAvailableError, self).__init__(**kwargs)
+
+
 class ItemDoNotMatchError(CirculationException):
     """Exception raised from action on unavailable item."""
+
+
+class DocumentDoNotMatchError(CirculationException):
+    """Exception raised from action on unavailable document."""
 
 
 class MultipleLoansOnItemError(CirculationException):

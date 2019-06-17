@@ -15,8 +15,8 @@ from flask import current_app
 from invenio_db import db
 
 from ..api import is_item_available_for_checkout
-from ..errors import InvalidLoanStateError, InvalidPermissionError, \
-    ItemDoNotMatchError, ItemNotAvailableError, \
+from ..errors import DocumentDoNotMatchError, DocumentNotAvailableError, \
+    InvalidLoanStateError, InvalidPermissionError, ItemNotAvailableError, \
     MissingRequiredParameterError, TransitionConditionsFailedError, \
     TransitionConstraintsViolationError
 from ..proxies import current_circulation
@@ -24,20 +24,10 @@ from ..signals import loan_state_changed
 from ..utils import parse_date
 
 
-def ensure_same_item_patron(f):
-    """Validate that item and patron PIDs exist and cannot be changed."""
+def ensure_same_patron(f):
+    """Validate that the patron PID exists and cannot be changed."""
     def inner(self, loan, **kwargs):
         new_patron_pid = kwargs.get('patron_pid')
-        new_item_pid = kwargs.get('item_pid')
-
-        if not current_app.config['CIRCULATION_ITEM_EXISTS'](new_item_pid):
-            msg = "Item '{0}' not found in the system".format(new_item_pid)
-            raise ItemNotAvailableError(description=msg)
-
-        if loan.get('item_pid') and new_item_pid != loan['item_pid']:
-            msg = "Loan item is '{0}' but transition is trying to set it to " \
-                  "'{1}'".format(loan['item_pid'], new_item_pid)
-            raise ItemDoNotMatchError(description=msg)
 
         if not current_app.config['CIRCULATION_PATRON_EXISTS'](new_patron_pid):
             msg = "Patron '{0}' not found in the system".format(new_patron_pid)
@@ -47,6 +37,28 @@ def ensure_same_item_patron(f):
             msg = "Loan patron is '{0}' but transition is trying to set it " \
                   "to '{1}'".format(loan['patron_pid'], new_patron_pid)
             raise TransitionConstraintsViolationError(description=msg)
+
+        return f(self, loan, **kwargs)
+    return inner
+
+
+def ensure_same_document(f):
+    """Validate that the document PID exists and cannot be changed."""
+    def inner(self, loan, **kwargs):
+        new_document_pid = kwargs.get('document_pid')
+
+        if not current_app \
+                .config['CIRCULATION_DOCUMENT_EXISTS'](new_document_pid):
+            msg = "Document '{0}' not found in the system"\
+                .format(new_document_pid)
+            raise DocumentNotAvailableError(description=msg)
+
+        if loan.get('document_pid') \
+           and new_document_pid != loan['document_pid']:
+            msg = "Loan document is '{0}' but transition is trying to set" \
+                  " it to '{1}'".format(loan['document_pid'],
+                                        new_document_pid)
+            raise DocumentDoNotMatchError(description=msg)
 
         return f(self, loan, **kwargs)
     return inner
@@ -109,6 +121,10 @@ class Transition(object):
             msg = "Item not set for loan with pid '{}'".format(loan.id)
             raise TransitionConstraintsViolationError(description=msg)
 
+        if not current_app.config['CIRCULATION_ITEM_EXISTS'](loan['item_pid']):
+            msg = "Item '{0}' not found in catalog".format(loan['item_pid'])
+            raise ItemNotAvailableError(description=msg)
+
         if not is_item_available_for_checkout(loan['item_pid']):
             raise ItemNotAvailableError(
                 item_pid=loan['item_pid'], transition=self.dest
@@ -124,7 +140,8 @@ class Transition(object):
 
     @check_trigger
     @ensure_required_params
-    @ensure_same_item_patron
+    @ensure_same_patron
+    @ensure_same_document
     def before(self, loan, **kwargs):
         """Validate input, evaluate conditions and raise if failed."""
         if self.permission_factory and not self.permission_factory(loan).can():

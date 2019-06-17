@@ -28,6 +28,13 @@ def item_exists(item_pid):
     )
 
 
+def document_exists(document_pid):
+    """Return True if document exists, False otherwise."""
+    raise NotImplementedConfigurationError(
+        config_variable="CIRCULATION_DOCUMENT_EXISTS"
+    )
+
+
 # NOTE: Its on purpose `ref` and not `$ref` so it doesn't try to resolve
 def item_ref_builder(loan_pid):
     """Return the $ref for item_pid."""

@@ -44,7 +44,7 @@ def test_should_fail_when_item_is_changed(
         "CIRCULATION_ITEM_LOCATION_RETRIEVER", lambda x: "pickup_location_pid"
     ):
         loan = current_circulation.circulation.trigger(
-            loan_created, **dict(params, trigger="request")
+            loan_created, **dict(params, trigger="checkout")
         )
     db.session.commit()
 
@@ -80,13 +80,18 @@ def test_should_fail_when_patron_is_changed(
 
 
 def test_persist_loan_parameters(
-    loan_created, db, params, mock_is_item_available_for_checkout
+    loan_created, db, params, mock_ensure_item_is_available_for_checkout
 ):
     """Test that input params are correctly persisted."""
+    mock_ensure_item_is_available_for_checkout.side_effect = None
+
     loan_pid = loan_pid_fetcher(loan_created.id, loan_created)
-    loan = current_circulation.circulation.trigger(
-        loan_created, **dict(params, trigger="checkout")
-    )
+    with SwappedConfig(
+        "CIRCULATION_ITEM_LOCATION_RETRIEVER", lambda x: "pickup_location_pid"
+    ):
+        loan = current_circulation.circulation.trigger(
+            loan_created, **dict(params, trigger="checkout")
+        )
     db.session.commit()
 
     params["loan_pid"] = loan_pid.pid_value
@@ -94,6 +99,7 @@ def test_persist_loan_parameters(
     params["start_date"] = loan["start_date"]
     params["end_date"] = loan["end_date"]
     params["trigger"] = loan["trigger"]
+    params["pickup_location_pid"] = loan["pickup_location_pid"]
     params["item"] = {"ref": "6"}
     params["$schema"] = "https://localhost:5000/schema/loans/loan-v1.0.0.json"
     assert loan == params

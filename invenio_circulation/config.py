@@ -21,10 +21,10 @@ from .transitions.transitions import CreatedToPending, \
     ItemOnLoanToItemInTransitHouse, ItemOnLoanToItemOnLoan, \
     ItemOnLoanToItemReturned, PendingToItemAtDesk, \
     PendingToItemInTransitPickup, ToItemOnLoan
-from .utils import can_be_requested, get_default_extension_duration, \
-    get_default_extension_max_count, get_default_loan_duration, \
-    is_loan_duration_valid, item_can_circulate, item_exists, \
-    item_location_retriever, item_ref_builder, patron_exists
+from .utils import can_be_requested, document_exists, \
+    get_default_extension_duration, get_default_extension_max_count, \
+    get_default_loan_duration, is_loan_duration_valid, item_can_circulate, \
+    item_exists, item_location_retriever, item_ref_builder, patron_exists
 
 CIRCULATION_ITEMS_RETRIEVER_FROM_DOCUMENT = None
 """Function that returns a list of item PIDs given a Document PID."""
@@ -97,6 +97,9 @@ CIRCULATION_PATRON_EXISTS = patron_exists
 
 CIRCULATION_ITEM_EXISTS = item_exists
 """Function that returns True if the given Item exists."""
+
+CIRCULATION_DOCUMENT_EXISTS = document_exists
+"""Function that returns True if the given Document exists."""
 
 CIRCULATION_ITEM_REF_BUILDER = item_ref_builder
 """Function that builds $ref to an `Item` record."""

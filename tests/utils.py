@@ -21,6 +21,11 @@ def item_exists(item_pid):
     return True
 
 
+def document_exists(document_pid):
+    """Return True if document exists, False otherwise."""
+    return True
+
+
 def item_can_circulate(item_pid):
     """Return True if the item can circulate, False otherwise."""
     return True
