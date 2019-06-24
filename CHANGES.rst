@@ -6,6 +6,11 @@
 
 Changes
 =======
+Version 1.0.0a14 (released 2019-06-24)
+
+- now allows loans to be created solely on document_pid
+- refactored and added more tests for transitions
+
 Version 1.0.0a13 (released 2019-04-24)
 
 - fixed item reference attachment on checkout
