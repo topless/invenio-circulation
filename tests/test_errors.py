@@ -94,7 +94,7 @@ def test_invalid_loan_state(app):
 
 def test_no_valid_transitions_available(app):
     """Test no valid transitions available."""
-    loan_pid = 'loan_pid'
+    loan_pid = 'pid'
     state = "not_valid"
     msg = (
         "For the loan with pid '{0}' there are no valid transitions from "
@@ -136,7 +136,7 @@ def test_missing_property(app):
 
 def test_loan_max_extensions(app):
     """Test loan max extension error."""
-    loan_pid = "loan_pid"
+    loan_pid = "pid"
     extension_count = 42
     msg = (
         "You have reached the maximum amount of extesions '{}' "

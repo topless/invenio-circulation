@@ -3,7 +3,7 @@
   "title": "Schema for loan",
   "type": "object",
   "required": [
-    "loan_pid",
+    "pid",
     "$schema",
     "state"
   ],
@@ -17,7 +17,7 @@
       "type": "integer",
       "title": "Loan extension count"
     },
-    "loan_pid": {
+    "pid": {
       "type": "string",
       "title": "Loan ID"
     },

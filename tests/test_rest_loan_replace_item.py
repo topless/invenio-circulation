@@ -18,7 +18,7 @@ def _post(app, json_headers, loan, payload):
     with app.test_client() as client:
         url = url_for(
             "invenio_circulation_loan_replace_item.loan_replace_item_resource",
-            pid_value=loan["loan_pid"],
+            pid_value=loan["pid"],
         )
         res = client.post(url, headers=json_headers, data=json.dumps(payload))
         data = json.loads(res.data.decode("utf-8"))
@@ -35,7 +35,7 @@ def test_loan_replace_item(app, json_headers, params, indexed_loans):
     assert data["metadata"]["item_pid"] == payload["item_pid"]
     # the ref won't change as it is pointing back to loan (it will
     # resolve by loan endpoint)
-    assert data["metadata"]["item"]["ref"] == loan["loan_pid"]
+    assert data["metadata"]["item"]["ref"] == loan["pid"]
 
 
 def test_loan_replace_item_inactive_state(
@@ -68,7 +68,7 @@ def test_loan_replace_item_wo_params(
 
 def test_loan_replace_item_wo_loan(app, json_headers, params, indexed_loans):
     """Test that no Loan is returned for the given Item if only pendings."""
-    loan = {"loan_pid": "not_existing_one"}
+    loan = {"pid": "not_existing_one"}
     payload = {"item_pid": "item_on_loan_2"}
     res, data = _post(app, json_headers, loan, payload)
     assert data["status"] == 404

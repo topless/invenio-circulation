@@ -149,7 +149,7 @@ def test_auto_assignment_of_returned_item_to_pending_document_requests(
 
             # create a new loan request on document_pid without items available
             new_loan_created = Loan.create({
-                Loan.pid_field: "2"
+                "pid": "2"
             })
             # remove item_pid
             params.pop("item_pid")

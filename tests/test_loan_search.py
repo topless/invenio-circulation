@@ -17,7 +17,7 @@ def test_search_loans_by_pid(indexed_loans):
     """Test retrieve loan list belonging to an item."""
     loans = list(search_by_pid(item_pid="item_pending_1").scan())
     assert len(loans) == 1
-    loan = Loan.get_record_by_pid(loans[0][Loan.pid_field])
+    loan = Loan.get_record_by_pid(loans[0]["pid"])
     assert loan.get("item_pid") == "item_pending_1"
 
 

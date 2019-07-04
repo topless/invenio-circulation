@@ -94,7 +94,7 @@ def test_persist_loan_parameters(
         )
     db.session.commit()
 
-    params["loan_pid"] = loan_pid.pid_value
+    params["pid"] = loan_pid.pid_value
     params["state"] = "ITEM_ON_LOAN"
     params["start_date"] = loan["start_date"]
     params["end_date"] = loan["end_date"]

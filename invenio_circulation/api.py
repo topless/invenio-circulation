@@ -21,7 +21,6 @@ from .search.api import search_by_patron_item_or_document, search_by_pid
 class Loan(Record):
     """Loan record class."""
 
-    pid_field = "loan_pid"
     _schema = "loans/loan-v1.0.0.json"
 
     def __init__(self, data, model=None):
@@ -39,7 +38,7 @@ class Loan(Record):
         item_pid = data.get("item_pid")
         if ref_builder and item_pid:
             data["document_pid"] = get_document_pid_by_item_pid(item_pid)
-            data["item"] = ref_builder(data["loan_pid"])
+            data["item"] = ref_builder(data["pid"])
         return super(Loan, cls).create(data, id_=id_, **kwargs)
 
     @classmethod
@@ -59,9 +58,9 @@ class Loan(Record):
         if not item_pid:
             raise MissingRequiredParameterError(
                 description='item_pid missing from loan {0}'.format(
-                    self['loan_pid']))
+                    self['pid']))
         if self.item_ref_builder:
-            self["item"] = self.item_ref_builder(self['loan_pid'])
+            self["item"] = self.item_ref_builder(self['pid'])
 
     def update_item_ref(self, data):
         """Replace item reference."""
@@ -69,7 +68,7 @@ class Loan(Record):
         if not new_item_pid:
             raise MissingRequiredParameterError(
                 description='item_pid missing from provided parameters {0}'
-                .format(self['loan_pid']))
+                .format(self['pid']))
         self["item_pid"] = new_item_pid
         self.attach_item_ref()
 
@@ -103,7 +102,7 @@ def get_pending_loans_by_item_pid(item_pid):
     """Return any pending loans for the given item."""
     search = search_by_pid(item_pid=item_pid, filter_states=["PENDING"])
     for result in search.scan():
-        yield Loan.get_record_by_pid(result[Loan.pid_field])
+        yield Loan.get_record_by_pid(result["pid"])
 
 
 def get_pending_loans_by_doc_pid(document_pid):
@@ -111,7 +110,7 @@ def get_pending_loans_by_doc_pid(document_pid):
     search = search_by_pid(document_pid=document_pid,
                            filter_states=["PENDING"])
     for result in search.scan():
-        yield Loan.get_record_by_pid(result[Loan.pid_field])
+        yield Loan.get_record_by_pid(result["pid"])
 
 
 def get_available_item_by_doc_pid(document_pid):
@@ -151,7 +150,7 @@ def get_loan_for_item(item_pid):
     if hits:
         if len(hits) > 1:
             raise MultipleLoansOnItemError(item_pid=item_pid)
-        loan = Loan.get_record_by_pid(hits[0][Loan.pid_field])
+        loan = Loan.get_record_by_pid(hits[0]["pid"])
     return loan
 
 

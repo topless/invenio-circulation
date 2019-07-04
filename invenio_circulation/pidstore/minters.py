@@ -14,10 +14,10 @@ from .providers import CirculationLoanIdProvider
 
 def loan_pid_minter(record_uuid, data):
     """Mint loan identifiers."""
-    assert Loan.pid_field not in data
+    assert "pid" not in data
     provider = CirculationLoanIdProvider.create(
         object_type='rec',
         object_uuid=record_uuid,
     )
-    data[Loan.pid_field] = provider.pid.pid_value
+    data["pid"] = provider.pid.pid_value
     return provider.pid

@@ -96,7 +96,7 @@ def _ensure_valid_extension(loan):
 
     if extension_count > extension_max_count:
         raise LoanMaxExtensionError(
-            loan_pid=loan["loan_pid"],
+            loan_pid=loan["pid"],
             extension_count=extension_max_count
         )
 
