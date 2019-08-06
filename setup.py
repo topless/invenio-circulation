@@ -17,21 +17,21 @@ history = open('CHANGES.rst').read()
 
 tests_require = [
     'check-manifest>=0.25',
-    'coverage>=4.0',
+    'coverage>=4.4',
     'isort>=4.3.11',
     'invenio-app>=1.0.4',
     'invenio-jsonschemas>=1.0.0',
     'mock>=1.3.0',
     'pydocstyle>=1.0.0',
     'pytest-cache>=1.0',
-    'pytest-cov>=2.6.0',
+    'pytest-cov>=2.7.1',
     'pytest-pep8>=1.0.6',
-    'pytest>=3.7',
-    'pytest-invenio>=1.0.2',
+    'pytest>=3.8.1',
+    'pytest-invenio>=1.2.0',
 ]
 
-invenio_search_version = '1.0.1'
-invenio_db_version = '1.0.2'
+invenio_search_version = '1.2.1'
+invenio_db_version = '1.0.4'
 
 extras_require = {
     'elasticsearch2': [
