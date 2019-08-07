@@ -6,6 +6,12 @@
 
 Changes
 =======
+
+Version 1.0.0a15 (released 2019-08-07)
+
+- remove ES 2 support
+- change `loan_pid` to `pid` schema field
+
 Version 1.0.0a14 (released 2019-06-24)
 
 - now allows loans to be created solely on document_pid
