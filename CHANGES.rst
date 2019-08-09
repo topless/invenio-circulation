@@ -1,11 +1,15 @@
 ..
-    Copyright (C) 2018 CERN.
-    Copyright (C) 2018 RERO.
+    Copyright (C) 2018-2019 CERN.
+    Copyright (C) 2018-2019 RERO.
     Invenio-Circulation is free software; you can redistribute it and/or modify it
     under the terms of the MIT License; see LICENSE file for more details.
 
 Changes
 =======
+
+Version 1.0.0a16 (released 2019-08-09)
+
+- change loan duration from number of days as int to timedelta
 
 Version 1.0.0a15 (released 2019-08-07)
 
