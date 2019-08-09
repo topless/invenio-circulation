@@ -283,13 +283,63 @@ def test_validate_item_in_transit_for_pickup(loan_created, db, params):
         assert loan["state"] == "ITEM_IN_TRANSIT_FOR_PICKUP"
 
 
+def test_checkout_extend_with_timedelta(
+    loan_created, db, params, mock_ensure_item_is_available_for_checkout
+):
+    """Test checkout with a timedelta duration."""
+    mock_ensure_item_is_available_for_checkout.side_effect = None
+
+    duration = timedelta(hours=4)
+
+    with SwappedNestedConfig(
+        ["CIRCULATION_POLICIES", "checkout", "duration_default"],
+        lambda x: duration,
+    ):
+        loan = current_circulation.circulation.trigger(
+            loan_created, **dict(params, trigger="checkout")
+        )
+        db.session.commit()
+
+        assert loan["state"] == "ITEM_ON_LOAN"
+        assert loan["start_date"] == loan["transaction_date"]
+        start_date = parse_date(loan["start_date"])
+        end_date = start_date + duration
+        assert loan["end_date"] == end_date.isoformat()
+
+        current_app.config["CIRCULATION_POLICIES"]["extension"][
+            "from_end_date"
+        ] = True
+
+        with SwappedNestedConfig(
+            ["CIRCULATION_POLICIES", "extension", "duration_default"],
+            lambda x: duration,
+        ):
+
+            duration = timedelta(days=1)
+            loan = current_circulation.circulation.trigger(
+                loan, **dict(params, trigger="extend")
+            )
+            db.session.commit()
+            first_extend_end_date = parse_date(loan["end_date"])
+            assert first_extend_end_date == end_date + timedelta(days=1)
+
+            duration = timedelta(days=3, minutes=33)
+            loan = current_circulation.circulation.trigger(
+                loan, **dict(params, trigger="extend")
+            )
+            db.session.commit()
+            second_extend_end_date = parse_date(loan["end_date"])
+            assert second_extend_end_date == \
+                first_extend_end_date + timedelta(days=3, minutes=33)
+
+
 def test_checkout_start_is_transaction_date(
     loan_created, db, params, mock_ensure_item_is_available_for_checkout
 ):
     """Test checkout start date to transaction date when not set."""
     mock_ensure_item_is_available_for_checkout.side_effect = None
 
-    number_of_days = 10
+    number_of_days = timedelta(days=10)
 
     with SwappedNestedConfig(
         ["CIRCULATION_POLICIES", "checkout", "duration_default"],
@@ -303,7 +353,7 @@ def test_checkout_start_is_transaction_date(
         assert loan["state"] == "ITEM_ON_LOAN"
         assert loan["start_date"] == loan["transaction_date"]
         start_date = parse_date(loan["start_date"])
-        end_date = start_date + timedelta(number_of_days)
+        end_date = start_date + number_of_days
         assert loan["end_date"] == end_date.isoformat()
 
 

@@ -48,13 +48,13 @@ def item_location_retriever(item_pid):
 
 
 def get_default_loan_duration(loan):
-    """Return a default loan duration in number of days."""
-    return 30
+    """Return a default loan duration in timedelta."""
+    return timedelta(days=30)
 
 
 def get_default_extension_duration(loan):
-    """Return a default extension duration in number of days."""
-    return 30
+    """Return a default extension duration in timedelta."""
+    return timedelta(days=30)
 
 
 def get_default_extension_max_count(loan):

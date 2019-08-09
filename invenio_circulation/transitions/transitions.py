@@ -32,8 +32,8 @@ def _ensure_valid_loan_duration(loan):
     if not loan.get('end_date'):
         get_loan_duration = current_app.config['CIRCULATION_POLICIES'][
             'checkout']['duration_default']
-        number_of_days = get_loan_duration(loan)
-        loan['end_date'] = loan['start_date'] + timedelta(days=number_of_days)
+        duration = get_loan_duration(loan)
+        loan['end_date'] = loan['start_date'] + duration
 
     is_duration_valid = current_app.config['CIRCULATION_POLICIES']['checkout'][
         'duration_validate']
@@ -104,7 +104,8 @@ def _ensure_valid_extension(loan):
 
     get_extension_duration = current_app.config['CIRCULATION_POLICIES'][
         'extension']['duration_default']
-    number_of_days = get_extension_duration(loan)
+
+    duration = get_extension_duration(loan)
     get_extension_from_end_date = current_app.config[
         'CIRCULATION_POLICIES']['extension']['from_end_date']
 
@@ -112,7 +113,7 @@ def _ensure_valid_extension(loan):
     if not get_extension_from_end_date:
         end_date = loan.get('transaction_date')
 
-    end_date += timedelta(days=number_of_days)
+    end_date += duration
     loan['end_date'] = end_date.isoformat()
 
 
