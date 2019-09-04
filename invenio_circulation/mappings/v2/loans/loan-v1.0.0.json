@@ -59,6 +59,14 @@
           "type": "string",
           "index": "not_analyzed"
         },
+        "delivery": {
+          "type": "object",
+          "properties": {
+            "method": {
+              "type": "keyword"
+            }
+          }
+        },
         "_created": {
           "type": "date"
         },

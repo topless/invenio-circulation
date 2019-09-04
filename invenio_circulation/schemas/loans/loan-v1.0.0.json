@@ -94,6 +94,15 @@
     "cancel_reason": {
       "type": "string",
       "title": "Reason for cancelling the loan"
+    },
+    "delivery": {
+      "type": "object",
+      "properties": {
+        "method": {
+          "type": "string"
+        }
+      },
+      "title": "Loan request delivery"
     }
   }
 }
