@@ -7,7 +7,7 @@
 Changes
 =======
 
-Version 1.0.0a17 (released 2019-09-12)
+Version 1.0.0a17 (released 2019-09-13)
 
 - add `delivery` object to the `loan` schema
 - pin invenio-records-rest version to ensure compatibility with python 3
