@@ -7,6 +7,12 @@
 Changes
 =======
 
+Version 1.0.0a17 (released 2019-09-12)
+
+- add `delivery` object to the `loan` schema
+- pin invenio-records-rest version to ensure compatibility with python 3
+  and marshmallow 3
+
 Version 1.0.0a16 (released 2019-08-09)
 
 - change loan duration from number of days as int to timedelta
