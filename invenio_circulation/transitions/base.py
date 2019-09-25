@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
@@ -11,17 +11,18 @@
 import copy
 from datetime import datetime
 
+import arrow
 from flask import current_app
 from invenio_db import db
 
-from ..api import is_item_available_for_checkout
+from ..api import Loan, is_item_available_for_checkout
 from ..errors import DocumentDoNotMatchError, DocumentNotAvailableError, \
     InvalidLoanStateError, InvalidPermissionError, ItemNotAvailableError, \
     MissingRequiredParameterError, TransitionConditionsFailedError, \
     TransitionConstraintsViolationError
 from ..proxies import current_circulation
 from ..signals import loan_state_changed
-from ..utils import parse_date
+from ..utils import str2datetime
 
 
 def ensure_same_patron(f):
@@ -33,9 +34,9 @@ def ensure_same_patron(f):
             msg = "Patron '{0}' not found in the system".format(new_patron_pid)
             raise TransitionConstraintsViolationError(description=msg)
 
-        if 'patron_pid' in loan and new_patron_pid != loan['patron_pid']:
-            msg = "Loan patron is '{0}' but transition is trying to set it " \
-                  "to '{1}'".format(loan['patron_pid'], new_patron_pid)
+        if loan.get('patron_pid') and new_patron_pid != loan['patron_pid']:
+            msg = "Cannot change patron to '{}' while performing an action " \
+                  "on this loan".format(new_patron_pid)
             raise TransitionConstraintsViolationError(description=msg)
 
         return f(self, loan, **kwargs)
@@ -55,9 +56,8 @@ def ensure_same_document(f):
 
         if loan.get('document_pid') \
            and new_document_pid != loan['document_pid']:
-            msg = "Loan document is '{0}' but transition is trying to set" \
-                  " it to '{1}'".format(loan['document_pid'],
-                                        new_document_pid)
+            msg = "Cannot change document to '{}' while performing an action "\
+                  "on this loan".format(new_document_pid)
             raise DocumentDoNotMatchError(description=msg)
 
         return f(self, loan, **kwargs)
@@ -73,9 +73,20 @@ def ensure_required_params(f):
                 .format(missing)
             raise MissingRequiredParameterError(description=msg)
         if all(param not in kwargs for param in self.PARTIAL_REQUIRED_PARAMS):
-            msg = "One of the parameters '[{}]' must be passed."\
+            msg = "One of the required parameters '[{}]' is missing." \
                 .format(self.PARTIAL_REQUIRED_PARAMS)
             raise MissingRequiredParameterError(description=msg)
+        return f(self, loan, **kwargs)
+    return inner
+
+
+def has_permission(f):
+    """Decorate to check the transition should be manually triggered."""
+    def inner(self, loan, **kwargs):
+        if self.permission_factory and not self.permission_factory(loan).can():
+            raise InvalidPermissionError(
+                permission=self.permission_factory(loan)
+            )
         return f(self, loan, **kwargs)
     return inner
 
@@ -84,8 +95,10 @@ def check_trigger(f):
     """Decorate to check the transition should be manually triggered."""
     def inner(self, loan, **kwargs):
         if kwargs.get('trigger', 'next') != self.trigger:
-            msg = "No param 'trigger' with value '{0}'.".format(self.trigger)
-            raise TransitionConditionsFailedError(description=msg)
+            msg = "The transition with trigger '{}' does not exist."
+            raise TransitionConditionsFailedError(
+                description=msg.format(self.trigger)
+            )
         return f(self, loan, **kwargs)
     return inner
 
@@ -97,7 +110,6 @@ class Transition(object):
         'transaction_user_pid',
         'patron_pid',
         'transaction_location_pid',
-        'transaction_date'
     ]
 
     PARTIAL_REQUIRED_PARAMS = [
@@ -118,7 +130,7 @@ class Transition(object):
     def ensure_item_is_available_for_checkout(self, loan):
         """Validate that an item is available."""
         if 'item_pid' not in loan:
-            msg = "Item not set for loan with pid '{}'".format(loan.id)
+            msg = "Item not set for loan with pid '{}'".format(loan['pid'])
             raise TransitionConstraintsViolationError(description=msg)
 
         if not current_app.config['CIRCULATION_ITEM_EXISTS'](loan['item_pid']):
@@ -138,31 +150,38 @@ class Transition(object):
                 .format(self.src, self.dest, states)
             raise InvalidLoanStateError(description=msg)
 
-    @check_trigger
-    @ensure_required_params
-    @ensure_same_patron
-    @ensure_same_document
+    def _date_fields2datetime(self, kwargs):
+        """Convert any extra kwargs string date to Python datetime."""
+        for field in Loan.DATE_FIELDS + Loan.DATETIME_FIELDS:
+            if field in kwargs:
+                if type(kwargs[field]) is not datetime:
+                    kwargs[field] = str2datetime(kwargs[field])
+
     def before(self, loan, **kwargs):
         """Validate input, evaluate conditions and raise if failed."""
-        if self.permission_factory and not self.permission_factory(loan).can():
-            raise InvalidPermissionError(
-                permission=self.permission_factory(loan)
-            )
-
-        kwargs.setdefault('transaction_date', datetime.now())
-        kwargs['transaction_date'] = parse_date(kwargs['transaction_date'])
         self.prev_loan = copy.deepcopy(loan)
         loan.update(kwargs)
+        loan.setdefault('transaction_date', arrow.utcnow())
 
+    @ensure_same_patron
+    @ensure_same_document
+    @ensure_required_params
+    @has_permission
+    @check_trigger
     def execute(self, loan, **kwargs):
         """Execute before actions, transition and after actions."""
+        self._date_fields2datetime(kwargs)
+        loan.date_fields2datetime()
+
         self.before(loan, **kwargs)
         loan['state'] = self.dest
         self.after(loan)
 
     def after(self, loan):
         """Commit record and index."""
-        loan['transaction_date'] = loan['transaction_date'].isoformat()
+        self.prev_loan.date_fields2str()
+        loan.date_fields2str()
+
         loan.commit()
         db.session.commit()
         current_circulation.loan_indexer.index(loan)

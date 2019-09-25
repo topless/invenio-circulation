@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
@@ -54,7 +54,7 @@ def test_multiple_active_loans(app, db, indexed_loans):
         "item_pid": "item_multiple_pending_on_loan_7",
         "patron_pid": "2",
         "state": "ITEM_ON_LOAN",
-        "transaction_date": "2018-06-26",
+        "transaction_date": "2018-06-26T09:00:00.442118+00:00",
         "transaction_location_pid": "loc_pid",
         "transaction_user_pid": "user_pid",
         "start_date": "2018-07-24",

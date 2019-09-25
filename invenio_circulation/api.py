@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
 """Circulation API."""
 
+from elasticsearch import VERSION as ES_VERSION
 from flask import current_app
 from invenio_jsonschemas import current_jsonschemas
 from invenio_pidstore.resolver import Resolver
@@ -15,31 +16,57 @@ from invenio_records.api import Record
 
 from .errors import MissingRequiredParameterError, MultipleLoansOnItemError
 from .pidstore.pids import CIRCULATION_LOAN_PID_TYPE
-from .search.api import search_by_patron_item_or_document, search_by_pid
+from .search.api import search_by_pid
+from .utils import str2datetime
 
 
 class Loan(Record):
     """Loan record class."""
 
+    DATE_FIELDS = [
+        "start_date",
+        "end_date",
+        "request_expire_date",
+        "request_start_date",
+    ]
+    DATETIME_FIELDS = ["transaction_date"]
+
     _schema = "loans/loan-v1.0.0.json"
 
     def __init__(self, data, model=None):
-        """."""
-        self["state"] = current_app.config["CIRCULATION_LOAN_INITIAL_STATE"]
+        """Constructor."""
         self.item_ref_builder = current_app.config.get(
-            "CIRCULATION_ITEM_REF_BUILDER")
-        super(Loan, self).__init__(data, model)
+            "CIRCULATION_ITEM_REF_BUILDER"
+        )
+        self["state"] = current_app.config["CIRCULATION_LOAN_INITIAL_STATE"]
+        super().__init__(data, model)
 
     @classmethod
     def create(cls, data, id_=None, **kwargs):
         """Create Loan record."""
         data["$schema"] = current_jsonschemas.path_to_url(cls._schema)
         ref_builder = current_app.config.get("CIRCULATION_ITEM_REF_BUILDER")
+        data["item"] = ref_builder(data["pid"])
         item_pid = data.get("item_pid")
-        if ref_builder and item_pid:
+        if item_pid:
             data["document_pid"] = get_document_pid_by_item_pid(item_pid)
-            data["item"] = ref_builder(data["pid"])
-        return super(Loan, cls).create(data, id_=id_, **kwargs)
+
+        return super().create(data, id_=id_, **kwargs)
+
+    def date_fields2datetime(self):
+        """Convert string datetime fields to Python datetime."""
+        for field in self.DATE_FIELDS + self.DATETIME_FIELDS:
+            if field in self:
+                self[field] = str2datetime(self[field])
+
+    def date_fields2str(self):
+        """Convert Python datetime fields to string."""
+        for field in self.DATE_FIELDS:
+            if field in self:
+                self[field] = self[field].date().isoformat()
+        for field in self.DATETIME_FIELDS:
+            if field in self:
+                self[field] = self[field].isoformat()
 
     @classmethod
     def get_record_by_pid(cls, pid, with_deleted=False):
@@ -56,19 +83,20 @@ class Loan(Record):
         """Attach item reference."""
         item_pid = self.get("item_pid")
         if not item_pid:
+            msg = "Missing required field 'item_pid' in loan '{}'"
             raise MissingRequiredParameterError(
-                description='item_pid missing from loan {0}'.format(
-                    self['pid']))
+                description=msg.format(self["pid"])
+            )
         if self.item_ref_builder:
-            self["item"] = self.item_ref_builder(self['pid'])
+            self["item"] = self.item_ref_builder(self["pid"])
 
-    def update_item_ref(self, data):
+    def update_item_ref(self, new_item_pid):
         """Replace item reference."""
-        new_item_pid = data.get("item_pid")
         if not new_item_pid:
+            msg = "Missing required arg 'item_pid' when updating loan '{}'"
             raise MissingRequiredParameterError(
-                description='item_pid missing from provided parameters {0}'
-                .format(self['pid']))
+                description=msg.format(self["pid"])
+            )
         self["item_pid"] = new_item_pid
         self.attach_item_ref()
 
@@ -86,7 +114,11 @@ def is_item_available_for_checkout(item_pid):
         item_pid=item_pid,
         filter_states=config.get("CIRCULATION_STATES_LOAN_ACTIVE"),
     )
-    return search.execute().hits.total == 0
+    search_result = search.execute()
+    if ES_VERSION[0] >= 7:
+        return search_result.hits.total.value == 0
+    else:
+        return search_result.hits.total == 0
 
 
 def can_be_requested(loan):
@@ -100,15 +132,24 @@ def can_be_requested(loan):
 
 def get_pending_loans_by_item_pid(item_pid):
     """Return any pending loans for the given item."""
-    search = search_by_pid(item_pid=item_pid, filter_states=["PENDING"])
+    search = search_by_pid(
+        item_pid=item_pid,
+        filter_states=current_app.config.get(
+            "CIRCULATION_STATES_LOAN_REQUEST"
+        ),
+    )
     for result in search.scan():
         yield Loan.get_record_by_pid(result["pid"])
 
 
 def get_pending_loans_by_doc_pid(document_pid):
     """Return any pending loans for the given document."""
-    search = search_by_pid(document_pid=document_pid,
-                           filter_states=["PENDING"])
+    search = search_by_pid(
+        document_pid=document_pid,
+        filter_states=current_app.config.get(
+            "CIRCULATION_STATES_LOAN_REQUEST"
+        ),
+    )
     for result in search.scan():
         yield Loan.get_record_by_pid(result["pid"])
 
@@ -152,29 +193,3 @@ def get_loan_for_item(item_pid):
             raise MultipleLoansOnItemError(item_pid=item_pid)
         loan = Loan.get_record_by_pid(hits[0]["pid"])
     return loan
-
-
-def patron_has_active_loan_on_item(patron_pid,
-                                   item_pid=None,
-                                   document_pid=None):
-    """Return True if patron has a pending/active Loan for given item/doc."""
-    if not patron_pid:
-        raise MissingRequiredParameterError(
-            description="Parameter 'patron_pid' is required"
-        )
-
-    if not(item_pid or document_pid):
-        raise MissingRequiredParameterError(
-            description="Parameter 'item_pid' or 'document_pid' is required"
-        )
-
-    states = ["CREATED", "PENDING"] + \
-        current_app.config["CIRCULATION_STATES_LOAN_ACTIVE"]
-    search = search_by_patron_item_or_document(
-        patron_pid=patron_pid,
-        item_pid=item_pid,
-        document_pid=document_pid,
-        filter_states=states,
-    )
-    search_result = search.execute()
-    return search_result.hits.total > 0

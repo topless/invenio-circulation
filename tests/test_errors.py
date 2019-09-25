@@ -139,7 +139,7 @@ def test_loan_max_extensions(app):
     loan_pid = "pid"
     extension_count = 42
     msg = (
-        "You have reached the maximum amount of extesions '{}' "
+        "You have reached the maximum amount of extensions '{}' "
         "for loan '{}'".format(extension_count, loan_pid)
     )
     with pytest.raises(LoanMaxExtensionError) as ex:

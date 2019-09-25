@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
@@ -9,7 +9,7 @@
 """Circulation API."""
 
 
-import ciso8601
+import arrow
 
 from .errors import NotImplementedConfigurationError
 
@@ -92,6 +92,6 @@ def get_default_extension_max_count(loan):
     )
 
 
-def parse_date(str_date):
+def str2datetime(str_date):
     """Parse string date with timezone and return a datetime object."""
-    return ciso8601.parse_datetime(str_date)
+    return arrow.get(str_date).to('utc')

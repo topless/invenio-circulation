@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
@@ -9,7 +9,9 @@
 """Tests for loan states."""
 
 import json
+from datetime import timedelta
 
+import arrow
 from flask import url_for
 from invenio_indexer.api import RecordIndexer
 from invenio_search import current_search
@@ -66,15 +68,17 @@ def test_multiple_active_loans(app, db, json_headers, indexed_loans):
     """Test return error when more than one loan on given item."""
     multiple_loans_pid = "item_multiple_pending_on_loan_7"
 
+    now = arrow.utcnow()
+    end_date = now + timedelta(days=30)
     test_loan_data = {
         "item_pid": "item_multiple_pending_on_loan_7",
         "patron_pid": "2",
         "state": "ITEM_ON_LOAN",
-        "transaction_date": "2018-06-26",
+        "transaction_date": now.isoformat(),
         "transaction_location_pid": "loc_pid",
         "transaction_user_pid": "user_pid",
-        "start_date": "2018-07-24",
-        "end_date": "2018-08-23"
+        "start_date": now.date().isoformat(),
+        "end_date": end_date.date().isoformat()
     }
 
     pid, loan = create_loan(test_loan_data)

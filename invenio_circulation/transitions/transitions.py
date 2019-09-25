@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
 """Invenio Circulation custom transitions."""
-
-from datetime import timedelta
 
 from flask import current_app
 from invenio_db import db
@@ -22,7 +20,6 @@ from ..errors import ItemDoNotMatchError, ItemNotAvailableError, \
     TransitionConditionsFailedError, TransitionConstraintsViolationError
 from ..transitions.base import Transition
 from ..transitions.conditions import is_same_location
-from ..utils import parse_date
 
 
 def _ensure_valid_loan_duration(loan):
@@ -39,8 +36,8 @@ def _ensure_valid_loan_duration(loan):
         'duration_validate']
     if not is_duration_valid(loan):
         msg = "The loan duration from '{0}' to '{1}' is not valid.".format(
-            loan['start_date'],
-            loan['end_date']
+            loan['start_date'].isoformat(),
+            loan['end_date'].isoformat()
         )
         raise TransitionConstraintsViolationError(description=msg)
 
@@ -48,7 +45,7 @@ def _ensure_valid_loan_duration(loan):
 def _ensure_item_attached_to_loan(loan):
     """Validate that an item is attached to a loan."""
     if not loan.get('item_pid'):
-        msg = "No item attached in loan with pid '{0}'.".format(loan.id)
+        msg = "No item assigned to loan '{0}'.".format(loan.id)
         raise TransitionConditionsFailedError(description=msg)
 
 
@@ -66,9 +63,8 @@ def ensure_same_item(f):
 
             if loan.get('item_pid') \
                and new_item_pid != loan['item_pid']:
-                msg = "Loan item is '{0}' but transition is trying to set" \
-                      " it to '{1}'".format(loan['item_pid'],
-                                            new_item_pid)
+                msg = "Cannot change item '{}' while performing an action on "\
+                      "this loan".format(new_item_pid)
                 raise ItemDoNotMatchError(description=msg)
 
         return f(self, loan, **kwargs)
@@ -87,47 +83,43 @@ def _update_document_pending_request_for_item(item_pid, **kwargs):
 
 def _ensure_valid_extension(loan):
     """Validate end dates for a extended loan."""
-    get_extension_max_count = current_app.config['CIRCULATION_POLICIES'][
-        'extension']['max_count']
-    extension_max_count = get_extension_max_count(loan)
-
     extension_count = loan.get('extension_count', 0)
     extension_count += 1
 
+    get_extension_max_count_func = current_app.config['CIRCULATION_POLICIES'][
+        'extension']['max_count']
+    extension_max_count = get_extension_max_count_func(loan)
     if extension_count > extension_max_count:
         raise LoanMaxExtensionError(
             loan_pid=loan["pid"],
             extension_count=extension_max_count
         )
-
     loan['extension_count'] = extension_count
 
-    get_extension_duration = current_app.config['CIRCULATION_POLICIES'][
+    get_extension_duration_func = current_app.config['CIRCULATION_POLICIES'][
         'extension']['duration_default']
+    duration = get_extension_duration_func(loan)
 
-    duration = get_extension_duration(loan)
-    get_extension_from_end_date = current_app.config[
+    should_extend_from_end_date = current_app.config[
         'CIRCULATION_POLICIES']['extension']['from_end_date']
+    if not should_extend_from_end_date:
+        # extend from the transaction_date instead
+        loan['end_date'] = loan['transaction_date']
 
-    end_date = parse_date(loan['end_date'])
-    if not get_extension_from_end_date:
-        end_date = loan.get('transaction_date')
-
-    end_date += duration
-    loan['end_date'] = end_date.isoformat()
+    loan['end_date'] += duration
 
 
 def _ensure_same_location(item_pid, location_pid, destination, error_msg):
     """Validate that item location is same as loan pickup location."""
     if not is_same_location(item_pid, location_pid):
-        error_msg += "Transition to {} has failed.".format(destination)
+        error_msg += "Transition to '{}' has failed.".format(destination)
         raise TransitionConditionsFailedError(description=error_msg)
 
 
 def _ensure_not_same_location(item_pid, location_pid, destination, error_msg):
     """Validate that item location is not the same as loan pickup location."""
     if is_same_location(item_pid, location_pid):
-        error_msg += "Transition to '{0}' has failed.".format(destination)
+        error_msg += "Transition to '{}' has failed.".format(destination)
         raise TransitionConditionsFailedError(description=error_msg)
 
 
@@ -142,7 +134,7 @@ class ToItemOnLoan(Transition):
 
     def before(self, loan, **kwargs):
         """Validate checkout action."""
-        super(ToItemOnLoan, self).before(loan, **kwargs)
+        super().before(loan, **kwargs)
 
         self.ensure_item_is_available_for_checkout(loan)
 
@@ -150,20 +142,13 @@ class ToItemOnLoan(Transition):
            or "pickup_location_pid" not in loan:
             loan['pickup_location_pid'] = _get_item_location(loan['item_pid'])
 
-        if loan.get('start_date'):
-            loan['start_date'] = parse_date(loan['start_date'])
-        if loan.get('end_date'):
-            loan['end_date'] = parse_date(loan['end_date'])
-
         _ensure_valid_loan_duration(loan)
 
     def after(self, loan):
-        """Convert dates to string before saving loan."""
-        loan['start_date'] = loan['start_date'].isoformat()
-        loan['end_date'] = loan['end_date'].isoformat()
+        """Attach Item after checkout."""
         if 'item' not in loan:
             loan.attach_item_ref()
-        super(ToItemOnLoan, self).after(loan)
+        super().after(loan)
 
 
 class ItemAtDeskToItemOnLoan(ToItemOnLoan):
@@ -171,57 +156,56 @@ class ItemAtDeskToItemOnLoan(ToItemOnLoan):
 
     def before(self, loan, **kwargs):
         """Validate checkout action."""
-        super(ToItemOnLoan, self).before(loan, **kwargs)
-
-        if loan.get('start_date'):
-            loan['start_date'] = parse_date(loan['start_date'])
-
-        if loan.get('end_date'):
-            loan['end_date'] = parse_date(loan['end_date'])
-
+        super().before(loan, **kwargs)
         _ensure_valid_loan_duration(loan)
 
 
-class CreatedToPending(Transition):
-    """Action to request to loan an item."""
+def check_request_on_document(f):
+    """Decorator to check if the request is on document."""
+    def inner(self, loan, **kwargs):
+        document_pid = kwargs.get('document_pid')
+        if document_pid and not kwargs.get('item_pid'):
+            if not can_be_requested(loan):
+                msg = "Cannot create a request for the document '{}'" \
+                    .format(loan.get('document_pid'))
+                raise RecordCannotBeRequestedError(description=msg)
 
-    def check_request_on_document(f):
-        """Decorate to check if the request is on document."""
-        def inner(self, loan, **kwargs):
-            document_pid = kwargs.get('document_pid')
-            if document_pid and not kwargs.get('item_pid'):
-                if not can_be_requested(loan):
-                    msg = (
-                        'Transition to {0} failed.'
-                        'Document {1} can not be requested.'
-                    ).format(self.dest, loan.get('document_pid'))
-                    raise RecordCannotBeRequestedError(description=msg)
-
+            if self.assign_item:
                 available_item_pid = get_available_item_by_doc_pid(
                     document_pid
                 )
                 if available_item_pid:
                     kwargs['item_pid'] = available_item_pid
 
-            if kwargs.get("item_pid") \
-               and not kwargs.get("pickup_location_pid"):
-                # if no pickup location was specified in the request,
-                # assign a default one
-                kwargs['pickup_location_pid'] = _get_item_location(
-                                                    kwargs.get("item_pid"))
+        if kwargs.get("item_pid") \
+           and not kwargs.get("pickup_location_pid"):
+            # if no pickup location was specified in the request,
+            # assign a default one
+            kwargs['pickup_location_pid'] = _get_item_location(
+                                                kwargs.get("item_pid"))
 
-            return f(self, loan, **kwargs)
-        return inner
+        return f(self, loan, **kwargs)
+    return inner
+
+
+class CreatedToPending(Transition):
+    """Action to request to loan an item."""
+
+    def __init__(self, src, dest, trigger='next', permission_factory=None,
+                 **kwargs):
+        """Constructor."""
+        super().__init__(src, dest, trigger=trigger,
+                         permission_factory=permission_factory, **kwargs)
+        self.assign_item = kwargs.get('assign_item', True)
 
     @check_request_on_document
     def before(self, loan, **kwargs):
         """Set a default pickup location if not passed as param."""
-        super(CreatedToPending, self).before(loan, **kwargs)
+        super().before(loan, **kwargs)
 
         if not can_be_requested(loan):
-            msg = (
-                'Transition to {0} failed. Item {1} can not be requested.'
-            ).format(self.dest, loan.get('item_pid'))
+            msg = "Cannot create a request for the item '{}'" \
+                .format(loan.get('item_pid'))
             raise RecordCannotBeRequestedError(description=msg)
 
 
@@ -230,7 +214,7 @@ class PendingToItemAtDesk(Transition):
 
     def before(self, loan, **kwargs):
         """Validate if the item is for this location or should transit."""
-        super(PendingToItemAtDesk, self).before(loan, **kwargs)
+        super().before(loan, **kwargs)
 
         # check if a request on document has no item attached
         _ensure_item_attached_to_loan(loan)
@@ -245,7 +229,7 @@ class PendingToItemInTransitPickup(Transition):
 
     def before(self, loan, **kwargs):
         """Validate if the item is for this location or should transit."""
-        super(PendingToItemInTransitPickup, self).before(loan, **kwargs)
+        super().before(loan, **kwargs)
 
         # check if a request on document has no item attached
         _ensure_item_attached_to_loan(loan)
@@ -261,7 +245,7 @@ class ItemOnLoanToItemOnLoan(Transition):
     @ensure_same_item
     def before(self, loan, **kwargs):
         """Validate extension action."""
-        super(ItemOnLoanToItemOnLoan, self).before(loan, **kwargs)
+        super().before(loan, **kwargs)
         _ensure_valid_extension(loan)
 
 
@@ -271,7 +255,7 @@ class ItemOnLoanToItemInTransitHouse(Transition):
     @ensure_same_item
     def before(self, loan, **kwargs):
         """Validate check-in action."""
-        super(ItemOnLoanToItemInTransitHouse, self).before(loan, **kwargs)
+        super().before(loan, **kwargs)
 
         _ensure_not_same_location(loan['item_pid'],
                                   loan['transaction_location_pid'],
@@ -282,19 +266,21 @@ class ItemOnLoanToItemInTransitHouse(Transition):
         # set end loan date as transaction date when completing loan
         loan['end_date'] = loan['transaction_date']
 
-    def after(self, loan):
-        """Convert dates to string before saving loan."""
-        loan['end_date'] = loan['end_date'].isoformat()
-        super(ItemOnLoanToItemInTransitHouse, self).after(loan)
-
 
 class ItemOnLoanToItemReturned(Transition):
     """Check-in action when returning an item to its belonging location."""
 
+    def __init__(self, src, dest, trigger='next', permission_factory=None,
+                 **kwargs):
+        """Constructor."""
+        super().__init__(src, dest, trigger=trigger,
+                         permission_factory=permission_factory, **kwargs)
+        self.assign_item = kwargs.get('assign_item', True)
+
     @ensure_same_item
     def before(self, loan, **kwargs):
         """Validate check-in action."""
-        super(ItemOnLoanToItemReturned, self).before(loan, **kwargs)
+        super().before(loan, **kwargs)
 
         _ensure_same_location(loan['item_pid'],
                               loan['transaction_location_pid'],
@@ -305,19 +291,26 @@ class ItemOnLoanToItemReturned(Transition):
         loan['end_date'] = loan['transaction_date']
 
     def after(self, loan):
-        """Convert dates to string before saving loan."""
-        loan['end_date'] = loan['end_date'].isoformat()
-        super(ItemOnLoanToItemReturned, self).after(loan)
-        _update_document_pending_request_for_item(loan['item_pid'])
+        """Check for pending requests on this item after check-in."""
+        super().after(loan)
+        if self.assign_item:
+            _update_document_pending_request_for_item(loan['item_pid'])
 
 
 class ItemInTransitHouseToItemReturned(Transition):
     """Check-in action when returning an item to its belonging location."""
 
+    def __init__(self, src, dest, trigger='next', permission_factory=None,
+                 **kwargs):
+        """Constructor."""
+        super().__init__(src, dest, trigger=trigger,
+                         permission_factory=permission_factory, **kwargs)
+        self.assign_item = kwargs.get('assign_item', True)
+
     @ensure_same_item
     def before(self, loan, **kwargs):
         """Validate check-in action."""
-        super(ItemInTransitHouseToItemReturned, self).before(loan, **kwargs)
+        super().before(loan, **kwargs)
 
         _ensure_same_location(loan['item_pid'],
                               loan['transaction_location_pid'],
@@ -325,6 +318,16 @@ class ItemInTransitHouseToItemReturned(Transition):
                               error_msg="Item should be in transit to house. ")
 
     def after(self, loan):
-        """Convert dates to string before saving loan."""
-        super(ItemInTransitHouseToItemReturned, self).after(loan)
-        _update_document_pending_request_for_item(loan['item_pid'])
+        """Check for pending requests on this item after check-in."""
+        super().after(loan)
+        if self.assign_item:
+            _update_document_pending_request_for_item(loan['item_pid'])
+
+
+class ToCancelled(Transition):
+    """When cancelling a loan, ensure that the item is not changed."""
+
+    @ensure_same_item
+    def before(self, loan, **kwargs):
+        """Validate cancel action."""
+        super().before(loan, **kwargs)

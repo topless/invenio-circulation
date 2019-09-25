@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
 """Tests for loan mandatory constraints."""
 
+import arrow
 import pytest
 
 from invenio_circulation.errors import ItemDoNotMatchError, \
@@ -36,9 +37,7 @@ def test_should_fail_when_item_not_exist(loan_created, params):
             )
 
 
-def test_should_fail_when_item_is_changed(
-    loan_created, db, params
-):
+def test_should_fail_when_item_is_changed(loan_created, params):
     """Test that constraints fail if item for an existing loan is changed."""
     with SwappedConfig(
         "CIRCULATION_ITEM_LOCATION_RETRIEVER", lambda x: "pickup_location_pid"
@@ -46,7 +45,6 @@ def test_should_fail_when_item_is_changed(
         loan = current_circulation.circulation.trigger(
             loan_created, **dict(params, trigger="checkout")
         )
-    db.session.commit()
 
     params["item_pid"] = "different_item_pid"
     with pytest.raises(ItemDoNotMatchError):
@@ -62,9 +60,7 @@ def test_should_fail_when_patron_not_exist(loan_created, params):
             )
 
 
-def test_should_fail_when_patron_is_changed(
-    loan_created, db, params
-):
+def test_should_fail_when_patron_is_changed(loan_created, params):
     """Test that constraints fail if patron for an existing loan is changed."""
     with SwappedConfig(
         "CIRCULATION_ITEM_LOCATION_RETRIEVER", lambda x: "pickup_location_pid"
@@ -72,7 +68,6 @@ def test_should_fail_when_patron_is_changed(
         loan = current_circulation.circulation.trigger(
             loan_created, **dict(params, trigger="request")
         )
-    db.session.commit()
 
     params["patron_pid"] = "different_patron_pid"
     with pytest.raises(TransitionConstraintsViolationError):
@@ -80,7 +75,7 @@ def test_should_fail_when_patron_is_changed(
 
 
 def test_persist_loan_parameters(
-    loan_created, db, params, mock_ensure_item_is_available_for_checkout
+    loan_created, params, mock_ensure_item_is_available_for_checkout
 ):
     """Test that input params are correctly persisted."""
     mock_ensure_item_is_available_for_checkout.side_effect = None
@@ -92,7 +87,6 @@ def test_persist_loan_parameters(
         loan = current_circulation.circulation.trigger(
             loan_created, **dict(params, trigger="checkout")
         )
-    db.session.commit()
 
     params["pid"] = loan_pid.pid_value
     params["state"] = "ITEM_ON_LOAN"
@@ -100,6 +94,7 @@ def test_persist_loan_parameters(
     params["end_date"] = loan["end_date"]
     params["trigger"] = loan["trigger"]
     params["pickup_location_pid"] = loan["pickup_location_pid"]
-    params["item"] = {"ref": "6"}
+    params["item"] = {"ref": loan_pid.pid_value}
     params["$schema"] = "https://localhost:5000/schema/loans/loan-v1.0.0.json"
+    params["transaction_date"] = loan["transaction_date"]
     assert loan == params

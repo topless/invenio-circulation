@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
@@ -34,14 +34,14 @@ invenio_search_version = '1.2.1'
 invenio_db_version = '1.0.4'
 
 extras_require = {
-    'elasticsearch2': [
-        'invenio-search[elasticsearch2]>={}'.format(invenio_search_version)
-    ],
     'elasticsearch5': [
         'invenio-search[elasticsearch5]>={}'.format(invenio_search_version)
     ],
     'elasticsearch6': [
         'invenio-search[elasticsearch6]>={}'.format(invenio_search_version)
+    ],
+    'elasticsearch7': [
+        'invenio-search[elasticsearch7]>={}'.format(invenio_search_version),
     ],
     'docs': [
         'Sphinx>=1.5.1'
@@ -64,9 +64,9 @@ for name, reqs in extras_require.items():
         'mysql',
         'postgresql',
         'sqlite',
-        'elasticsearch2',
         'elasticsearch5',
         'elasticsearch6',
+        'elasticsearch7',
     ):
         continue
     extras_require['all'].extend(reqs)
@@ -74,18 +74,14 @@ for name, reqs in extras_require.items():
 setup_requires = ['Babel>=1.3', 'pytest-runner>=2.6.2']
 
 install_requires = [
-    'ciso8601>=2.0.1',
+    'arrow>=0.15.0',
     'Flask-BabelEx>=0.9.3',
     'invenio-base>=1.0.1',
     'invenio-access>=1.0.1',
     'invenio-logging>=1.0.0',
     'invenio-pidstore>=1.0.0',
-    'invenio-records>=1.0.0',
-    'invenio-records-rest>=1.6.0',
-    'invenio-rest>=1.1.1',
+    'invenio-records-rest>=1.6.1',
     'invenio-jsonschemas>=1.0.0',
-    'pytz>=2018.5',
-    'webargs>=5.5.0',  # required to work with marshmallow v>3.0.0
 ]
 
 packages = find_packages()
@@ -111,6 +107,7 @@ setup(
     zip_safe=False,
     include_package_data=True,
     platforms='any',
+    python_requires='>=3',
     entry_points={
         'invenio_base.apps': [
             'invenio_circulation = invenio_circulation:InvenioCirculation'

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -19,7 +19,7 @@ from invenio_records_rest.utils import deny_all
 from six.moves import reduce
 
 from invenio_circulation.api import Loan
-from invenio_circulation.permissions import loan_reader
+from invenio_circulation.permissions import has_read_loan_permission
 from invenio_circulation.pidstore.pids import CIRCULATION_LOAN_MINTER
 
 
@@ -76,6 +76,6 @@ def create_loan(data):
 def test_views_permissions_factory(action):
     """Test views permissions factory."""
     if action == 'loan-read-access':
-        return loan_reader()
+        return has_read_loan_permission()
     else:
         return deny_all()

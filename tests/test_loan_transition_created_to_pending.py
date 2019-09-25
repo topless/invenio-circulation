@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
@@ -15,8 +15,7 @@ from .helpers import SwappedConfig
 
 
 def test_loan_request_on_document_with_auto_available_item_assignment(
-    loan_created, db, params,
-    mock_is_item_available_for_checkout
+    loan_created, params, mock_is_item_available_for_checkout
 ):
     """Test loan request on document with auto available item assignment."""
     mock_is_item_available_for_checkout.return_value = True
@@ -37,15 +36,13 @@ def test_loan_request_on_document_with_auto_available_item_assignment(
                 loan_created, **dict(params, trigger="request")
             )
 
-    db.session.commit()
     assert loan["state"] == "PENDING"
     assert loan["pickup_location_pid"] == "pickup_location_pid"
     assert loan["item_pid"] == "other_pid"
+    assert loan["transaction_date"]
 
 
-def test_loan_request_on_available_item_requested_location(
-    loan_created, db, params
-):
+def test_loan_request_on_available_item_with_pickup(loan_created, params):
     """Test loan request action on available item with pickup override."""
 
     with SwappedConfig(
@@ -60,15 +57,12 @@ def test_loan_request_on_available_item_requested_location(
                 pickup_location_pid="other_location_pid",
             )
         )
-    db.session.commit()
     assert loan["state"] == "PENDING"
     assert loan["pickup_location_pid"] == "other_location_pid"
     assert loan["item_pid"] == params["item_pid"]
 
 
-def test_loan_request_on_available_item_default_location(
-    loan_created, db, params
-):
+def test_loan_request_on_available_item_default_location(loan_created, params):
     """Test loan request action on available item without pickup override."""
 
     with SwappedConfig(
@@ -82,15 +76,13 @@ def test_loan_request_on_available_item_default_location(
                 trigger="request",
             )
         )
-    db.session.commit()
     assert loan["state"] == "PENDING"
     assert loan["pickup_location_pid"] == "pickup_location_pid"
     assert loan["item_pid"] == params["item_pid"]
 
 
 def test_loan_request_on_document_with_unavailable_items(
-    loan_created, db, params,
-    mock_is_item_available_for_checkout
+    loan_created, params, mock_is_item_available_for_checkout
 ):
     """Test loan request on a document that has no items available."""
     mock_is_item_available_for_checkout.return_value = False
@@ -110,7 +102,6 @@ def test_loan_request_on_document_with_unavailable_items(
                 pickup_location_pid="pickup_location_pid",
             )
         )
-        db.session.commit()
         assert loan["state"] == "PENDING"
         assert "item_pid" not in loan
         assert loan["document_pid"] == "document_pid"
@@ -118,8 +109,7 @@ def test_loan_request_on_document_with_unavailable_items(
 
 
 def test_auto_assignment_of_returned_item_to_pending_document_requests(
-    loan_created, db, params,
-    mock_is_item_available_for_checkout,
+    loan_created, params, mock_is_item_available_for_checkout,
     mock_get_pending_loans_by_doc_pid
 ):
     """Test assignment of newly available items to pending doc requests."""
@@ -144,7 +134,6 @@ def test_auto_assignment_of_returned_item_to_pending_document_requests(
                     pickup_location_pid="pickup_location_pid",
                 )
             )
-            db.session.commit()
             assert new_loan["state"] == "ITEM_ON_LOAN"
 
             # create a new loan request on document_pid without items available
@@ -162,7 +151,6 @@ def test_auto_assignment_of_returned_item_to_pending_document_requests(
                     pickup_location_pid="pickup_location_pid",
                 )
             )
-            db.session.commit()
             assert pending_loan["state"] == "PENDING"
             # no item available found. Request is created with no item attached
             assert "item_pid" not in pending_loan
@@ -179,7 +167,6 @@ def test_auto_assignment_of_returned_item_to_pending_document_requests(
                     pickup_location_pid="pickup_location_pid",
                 )
             )
-            db.session.commit()
             assert returned_loan["state"] == "ITEM_RETURNED"
 
             # item `item_pid` has been attached to pending loan request on

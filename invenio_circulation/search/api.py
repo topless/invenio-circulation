@@ -31,7 +31,7 @@ class LoansSearch(RecordsSearch):
             from elasticsearch_dsl.query import Bool, Q
             return self.query(Bool(filter=[~Q(*args, **kwargs)]))
         else:
-            return super(LoansSearch, self).exclude(*args, **kwargs)
+            return super().exclude(*args, **kwargs)
 
 
 def search_by_pid(item_pid=None, document_pid=None, filter_states=None,

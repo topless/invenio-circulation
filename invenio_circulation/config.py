@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
@@ -20,7 +20,7 @@ from .transitions.transitions import CreatedToPending, \
     ItemAtDeskToItemOnLoan, ItemInTransitHouseToItemReturned, \
     ItemOnLoanToItemInTransitHouse, ItemOnLoanToItemOnLoan, \
     ItemOnLoanToItemReturned, PendingToItemAtDesk, \
-    PendingToItemInTransitPickup, ToItemOnLoan
+    PendingToItemInTransitPickup, ToCancelled, ToItemOnLoan
 from .utils import can_be_requested, document_exists, \
     get_default_extension_duration, get_default_extension_max_count, \
     get_default_loan_duration, is_loan_duration_valid, item_can_circulate, \
@@ -31,6 +31,9 @@ CIRCULATION_ITEMS_RETRIEVER_FROM_DOCUMENT = None
 
 CIRCULATION_DOCUMENT_RETRIEVER_FROM_ITEM = None
 """Function that returns the Document PID of a given Item PID."""
+
+CIRCULATION_STATES_LOAN_REQUEST = ['PENDING']
+"""Defines the list of states for which the loan is considered requested."""
 
 CIRCULATION_STATES_LOAN_ACTIVE = ['ITEM_AT_DESK',
                                   'ITEM_ON_LOAN',
@@ -48,6 +51,9 @@ CIRCULATION_STATES_LOAN_COMPLETED = ['ITEM_RETURNED']
 Loans with these states are considered as valid past loans for the item they
 refer to."""
 
+CIRCULATION_STATES_LOAN_CANCELLED = ['CANCELLED']
+"""Defines the list of states for which the loan is considered cancelled."""
+
 CIRCULATION_LOAN_TRANSITIONS_DEFAULT_PERMISSION_FACTORY = allow_all
 """Default permission factory for all Loans transitions."""
 
@@ -61,15 +67,15 @@ CIRCULATION_LOAN_TRANSITIONS = {
         dict(dest='ITEM_IN_TRANSIT_FOR_PICKUP',
              transition=PendingToItemInTransitPickup),
         dict(dest='ITEM_ON_LOAN', trigger='checkout', transition=ToItemOnLoan),
-        dict(dest='CANCELLED', trigger='cancel')
+        dict(dest='CANCELLED', trigger='cancel', transition=ToCancelled)
     ],
     'ITEM_AT_DESK': [
         dict(dest='ITEM_ON_LOAN', transition=ItemAtDeskToItemOnLoan),
-        dict(dest='CANCELLED', trigger='cancel')
+        dict(dest='CANCELLED', trigger='cancel', transition=ToCancelled)
     ],
     'ITEM_IN_TRANSIT_FOR_PICKUP': [
         dict(dest='ITEM_AT_DESK'),
-        dict(dest='CANCELLED', trigger='cancel')
+        dict(dest='CANCELLED', trigger='cancel', transition=ToCancelled)
     ],
     'ITEM_ON_LOAN': [
         dict(dest='ITEM_RETURNED', transition=ItemOnLoanToItemReturned),
@@ -77,12 +83,12 @@ CIRCULATION_LOAN_TRANSITIONS = {
              transition=ItemOnLoanToItemInTransitHouse),
         dict(dest='ITEM_ON_LOAN', transition=ItemOnLoanToItemOnLoan,
              trigger='extend'),
-        dict(dest='CANCELLED', trigger='cancel')
+        dict(dest='CANCELLED', trigger='cancel', transition=ToCancelled)
     ],
     'ITEM_IN_TRANSIT_TO_HOUSE': [
         dict(dest='ITEM_RETURNED',
              transition=ItemInTransitHouseToItemReturned),
-        dict(dest='CANCELLED', trigger='cancel')
+        dict(dest='CANCELLED', trigger='cancel', transition=ToCancelled)
     ],
     'ITEM_RETURNED': [],
     'CANCELLED': [],
@@ -138,13 +144,20 @@ CIRCULATION_REST_ENDPOINTS = dict(
         search_class=LoansSearch,
         search_type=None,
         record_class=Loan,
+        record_loaders={
+            'application/json': (
+                'invenio_circulation.records.loaders:loan_loader'
+            ),
+        },
         record_serializers={
-            'application/json': ('invenio_records_rest.serializers'
-                                 ':json_v1_response'),
+            'application/json': (
+                'invenio_records_rest.serializers:json_v1_response'
+            ),
         },
         search_serializers={
-            'application/json': ('invenio_records_rest.serializers'
-                                 ':json_v1_search'),
+            'application/json': (
+                'invenio_records_rest.serializers:json_v1_search'
+            ),
         },
         list_route='/circulation/loans/',
         item_route='/circulation/loans/<{0}:pid_value>'.format(

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
@@ -23,6 +23,7 @@ from .permissions import need_permissions
 from .pidstore.fetchers import loan_pid_fetcher
 from .pidstore.pids import _LOANID_CONVERTER, CIRCULATION_LOAN_PID_TYPE
 from .proxies import current_circulation
+from .records.loaders import loan_loader
 from .signals import loan_replace_item
 
 
@@ -46,38 +47,42 @@ def build_url_action_for_pid(pid, action):
     )
 
 
+def _get_loan_endpoint_options(app):
+    """Return the configured endpoint options."""
+    endpoints = app.config.get("CIRCULATION_REST_ENDPOINTS", [])
+    options = deepcopy(endpoints.get(CIRCULATION_LOAN_PID_TYPE, {}))
+    default_media_type = options.get("default_media_type", "")
+    rec_serializers = options.get("record_serializers", {})
+    serializers = {
+        mime: obj_or_import_string(func)
+        for mime, func in rec_serializers.items()
+    }
+    return options, dict(
+        serializers=serializers,
+        default_media_type=default_media_type,
+        ctx={},
+    )
+
+
 def create_loan_actions_blueprint(app):
     """Create a blueprint for Loan actions."""
     blueprint = Blueprint(
         "invenio_circulation_loan_actions", __name__, url_prefix=""
     )
 
-    endpoints = app.config.get("CIRCULATION_REST_ENDPOINTS", [])
-    pid_type = CIRCULATION_LOAN_PID_TYPE
-    options = endpoints.get(pid_type, {})
-    if options:
-        options = deepcopy(options)
-        serializers = {}
-        if "record_serializers" in options:
-            rec_serializers = options.get("record_serializers")
-            serializers = {
-                mime: obj_or_import_string(func)
-                for mime, func in rec_serializers.items()
-            }
+    all_options, view_options = _get_loan_endpoint_options(app)
+    view_options["ctx"]["loader"] = loan_loader
+    loan_actions = LoanActionResource.as_view(
+        LoanActionResource.view_name.format(CIRCULATION_LOAN_PID_TYPE),
+        **view_options
+    )
 
-        loan_actions = LoanActionResource.as_view(
-            LoanActionResource.view_name.format(pid_type),
-            serializers=serializers,
-            ctx={},
-        )
+    distinct_actions = extract_transitions_from_app(app)
+    url = "{0}/<any({1}):action>".format(
+        all_options["item_route"], ",".join(distinct_actions)
+    )
 
-        distinct_actions = extract_transitions_from_app(app)
-        url = "{0}/<any({1}):action>".format(
-            options["item_route"], ",".join(distinct_actions)
-        )
-
-        blueprint.add_url_rule(url, view_func=loan_actions, methods=["POST"])
-
+    blueprint.add_url_rule(url, view_func=loan_actions, methods=["POST"])
     return blueprint
 
 
@@ -88,7 +93,7 @@ class LoanActionResource(ContentNegotiatedMethodView):
 
     def __init__(self, serializers, ctx, *args, **kwargs):
         """Constructor."""
-        super(LoanActionResource, self).__init__(serializers, *args, **kwargs)
+        super().__init__(serializers, *args, **kwargs)
         for key, value in ctx.items():
             setattr(self, key, value)
 
@@ -96,9 +101,9 @@ class LoanActionResource(ContentNegotiatedMethodView):
     @pass_record
     def post(self, pid, record, action, **kwargs):
         """Handle loan action."""
-        params = request.get_json()
+        data = self.loader()
         record = current_circulation.circulation.trigger(
-            record, **dict(params, trigger=action)
+            record, **dict(data, trigger=action)
         )
         db.session.commit()
         return self.make_response(
@@ -117,21 +122,13 @@ def create_loan_for_item_blueprint(app):
         "invenio_circulation_loan_for_item", __name__, url_prefix=""
     )
 
-    rec_serializers = {
-        "application/json": (
-            "invenio_records_rest.serializers" ":json_v1_response"
-        )
-    }
-    serializers = {
-        mime: obj_or_import_string(func)
-        for mime, func in rec_serializers.items()
-    }
-
+    _, view_options = _get_loan_endpoint_options(app)
     loan_request = ItemLoanResource.as_view(
-        ItemLoanResource.view_name, serializers=serializers, ctx={}
+        ItemLoanResource.view_name,
+        **view_options
     )
 
-    url = "circulation/items/<pid_value>/loan"
+    url = "circulation/items/<string:pid_value>/loan"
 
     blueprint.add_url_rule(url, view_func=loan_request, methods=["GET"])
     return blueprint
@@ -144,7 +141,7 @@ class ItemLoanResource(ContentNegotiatedMethodView):
 
     def __init__(self, serializers, ctx, *args, **kwargs):
         """Resource view constructor."""
-        super(ItemLoanResource, self).__init__(serializers, *args, **kwargs)
+        super().__init__(serializers, *args, **kwargs)
         for key, value in ctx.items():
             setattr(self, key, value)
 
@@ -175,19 +172,10 @@ def create_loan_replace_item_blueprint(app):
         "invenio_circulation_loan_replace_item", __name__, url_prefix=""
     )
 
-    rec_serializers = {
-        "application/json": (
-            "invenio_records_rest.serializers" ":json_v1_response"
-        )
-    }
-    serializers = {
-        mime: obj_or_import_string(func)
-        for mime, func in rec_serializers.items()
-    }
+    _, view_options = _get_loan_endpoint_options(app)
     replace_item_view = LoanReplaceItemResource.as_view(
         LoanReplaceItemResource.view_name.format(CIRCULATION_LOAN_PID_TYPE),
-        serializers=serializers,
-        ctx={},
+        **view_options
     )
 
     url = "circulation/loans/<{0}:pid_value>/replace-item".format(
@@ -197,7 +185,7 @@ def create_loan_replace_item_blueprint(app):
     return blueprint
 
 
-def validate_replace_item(loan, data):
+def validate_replace_item(loan, new_item_pid):
     """Validate data before replacing an item in loan."""
     active_states = current_app.config["CIRCULATION_STATES_LOAN_ACTIVE"]
     if loan["state"] not in active_states:
@@ -206,15 +194,14 @@ def validate_replace_item(loan, data):
             "Current loan state '{}'".format(loan["state"])
         ))
 
-    item_pid = data.get("item_pid")
-    if not item_pid:
+    if not new_item_pid:
         raise MissingRequiredParameterError(
-            description="Parameter item_pid is required."
+            description="Parameter 'item_pid' is required."
         )
 
-    item_exists = current_app.config.get("CIRCULATION_ITEM_EXISTS")(item_pid)
-    if not item_exists:
-        raise ItemNotAvailableError(item_pid=item_pid)
+    item_exists_func = current_app.config.get("CIRCULATION_ITEM_EXISTS")
+    if not item_exists_func(new_item_pid):
+        raise ItemNotAvailableError(item_pid=new_item_pid)
 
 
 class LoanReplaceItemResource(ContentNegotiatedMethodView):
@@ -224,9 +211,7 @@ class LoanReplaceItemResource(ContentNegotiatedMethodView):
 
     def __init__(self, serializers, ctx, *args, **kwargs):
         """Constructor."""
-        super(LoanReplaceItemResource, self).__init__(
-            serializers, *args, **kwargs
-        )
+        super().__init__(serializers, *args, **kwargs)
         for key, value in ctx.items():
             setattr(self, key, value)
 
@@ -234,10 +219,13 @@ class LoanReplaceItemResource(ContentNegotiatedMethodView):
     @pass_record
     def post(self, pid, record, *args, **kwargs):
         """Handle POST request to update loan with new item."""
-        old_item_pid = record["item_pid"]
         data = request.get_json()
-        validate_replace_item(record, data)
-        record.update_item_ref(data)
+        old_item_pid = record["item_pid"]
+        new_item_pid = data.get("item_pid")
+
+        validate_replace_item(record, new_item_pid)
+        record.update_item_ref(new_item_pid)
+
         record.commit()
         db.session.commit()
 

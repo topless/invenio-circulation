@@ -11,7 +11,7 @@ from invenio_circulation.proxies import current_circulation
 from invenio_circulation.signals import loan_state_changed
 
 
-def test_signals_loan_request(loan_created, db, params):
+def test_signals_loan_request(loan_created, params):
     """Test signal for loan request action."""
     recorded = []
 
@@ -29,7 +29,6 @@ def test_signals_loan_request(loan_created, db, params):
             pickup_location_pid="pickup_location_pid",
         )
     )
-    db.session.commit()
     assert len(recorded) == 1
     prev_loan, updated_loan, trigger = recorded.pop()
     assert prev_loan["state"] == "CREATED"
@@ -37,7 +36,7 @@ def test_signals_loan_request(loan_created, db, params):
     assert trigger == "request"
 
 
-def test_signals_loan_extend(loan_created, db, params):
+def test_signals_loan_extend(loan_created, params):
     """Test signals for loan extend action."""
     recorded = []
 
@@ -50,7 +49,6 @@ def test_signals_loan_extend(loan_created, db, params):
     loan = current_circulation.circulation.trigger(
         loan_created, **dict(params, trigger="checkout")
     )
-    db.session.commit()
     assert len(recorded) == 1
     prev_loan, updated_loan, trigger = recorded.pop()
     assert prev_loan["state"] == "CREATED"
@@ -60,7 +58,6 @@ def test_signals_loan_extend(loan_created, db, params):
     current_circulation.circulation.trigger(
         loan, **dict(params, trigger="extend")
     )
-    db.session.commit()
     assert len(recorded) == 1
     prev_loan, updated_loan, trigger = recorded.pop()
     assert prev_loan["state"] == "ITEM_ON_LOAN"

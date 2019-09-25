@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
@@ -21,7 +21,7 @@ class CirculationException(RESTException):
 
     def __init__(self, **kwargs):
         """Initialize exception."""
-        super(CirculationException, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     @property
     def name(self):
@@ -57,14 +57,14 @@ class InvalidPermissionError(CirculationException):
         """Initialize exception."""
         self.description = "This action is not permitted " \
             "for your role '{}'".format(permission)
-        super(InvalidPermissionError, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 # Transitions
 class TransitionConstraintsViolationError(CirculationException):
     """Exception raised when constraints for the transition failed."""
 
-    description = "Transition constraints have been wildly violated."
+    description = "Transition constraints have failed."
 
 
 class TransitionConditionsFailedError(CirculationException):
@@ -82,7 +82,7 @@ class NoValidTransitionAvailableError(CirculationException):
             "For the loan with pid '{0}' there are no valid transitions from "
             "its current state '{1}'".format(loan_pid, state)
         )
-        super(NoValidTransitionAvailableError, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 # Loans
@@ -92,7 +92,7 @@ class InvalidLoanStateError(CirculationException):
     def __init__(self, state=None, **kwargs):
         """Initialize exception."""
         self.description = "Invalid loan state '{}'".format(state)
-        super(InvalidLoanStateError, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 class ItemNotAvailableError(CirculationException):
@@ -104,7 +104,7 @@ class ItemNotAvailableError(CirculationException):
             "The item requested with pid '{0}' is not available. "
             "Transition to '{1}' has failed.".format(item_pid, transition)
         )
-        super(ItemNotAvailableError, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 class DocumentNotAvailableError(CirculationException):
@@ -116,7 +116,7 @@ class DocumentNotAvailableError(CirculationException):
             "The document requested with pid '{0}' is not available. "
             "Transition to '{1}' has failed.".format(document_pid, transition)
         )
-        super(DocumentNotAvailableError, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 class ItemDoNotMatchError(CirculationException):
@@ -135,7 +135,7 @@ class MultipleLoansOnItemError(CirculationException):
         self.description = (
             "Multiple active loans on item with pid '{}'".format(item_pid)
         )
-        super(MultipleLoansOnItemError, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 class LoanMaxExtensionError(CirculationException):
@@ -144,10 +144,10 @@ class LoanMaxExtensionError(CirculationException):
     def __init__(self, loan_pid=None, extension_count=None, **kwargs):
         """Initialize exception."""
         self.description = (
-            "You have reached the maximum amount of extesions '{}' "
+            "You have reached the maximum amount of extensions '{}' "
             "for loan '{}'".format(extension_count, loan_pid)
         )
-        super(LoanMaxExtensionError, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 # General
@@ -166,7 +166,7 @@ class NotImplementedConfigurationError(CirculationException):
     def __init__(self, config_variable=None, **kwargs):
         """Initialize exception."""
         self.description = "{} '{}'".format(self.description, config_variable)
-        super(NotImplementedConfigurationError, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
 
 class MissingRequiredParameterError(CirculationException):

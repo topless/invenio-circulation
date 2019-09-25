@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
@@ -11,7 +11,6 @@
 import json
 
 from flask import url_for
-from invenio_db import db
 
 from invenio_circulation.pidstore.fetchers import loan_pid_fetcher
 from invenio_circulation.proxies import current_circulation
@@ -50,8 +49,7 @@ def _post(app, json_headers, params, pid_value, action):
 
 
 def test_rest_explicit_loan_valid_action(
-    app, json_headers, params, mock_is_item_available_for_checkout,
-    loan_created
+    app, json_headers, params, loan_created
 ):
     """Test API valid action on loan."""
     loan_pid = loan_pid_fetcher(loan_created.id, loan_created)
@@ -71,7 +69,6 @@ def test_rest_automatic_loan_valid_action(
         **dict(params, trigger='request',
                pickup_location_pid='pickup_location_pid')
     )
-    db.session.commit()
     assert loan['state'] == 'PENDING'
 
     app.config[
@@ -87,8 +84,7 @@ def test_rest_automatic_loan_valid_action(
 
 
 def test_rest_loan_invalid_action(
-    app, json_headers, params, mock_is_item_available_for_checkout,
-    loan_created
+    app, json_headers, params, loan_created
 ):
     """Test API invalid action on loan."""
     loan = current_circulation.circulation.trigger(
@@ -96,7 +92,6 @@ def test_rest_loan_invalid_action(
         **dict(params, trigger='request',
                pickup_location_pid='pickup_location_pid')
     )
-    db.session.commit()
     assert loan['state'] == 'PENDING'
 
     loan_pid = loan_pid_fetcher(loan.id, loan)

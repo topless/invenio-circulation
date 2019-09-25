@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
@@ -93,6 +93,9 @@ app.register_blueprint(create_blueprint_from_app(app))
 app.register_blueprint(create_loan_actions_blueprint(app))
 app.register_blueprint(create_loan_for_item_blueprint(app))
 app.register_blueprint(create_loan_replace_item_blueprint(app))
+app.config["CIRCULATION_ITEM_REF_BUILDER"] = lambda loan_pid: {
+    "ref": "{}".format(loan_pid)
+}
 
 
 @app.cli.group()

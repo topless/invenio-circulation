@@ -1,12 +1,16 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
 """Tests for loan states."""
+
+from datetime import timedelta
+
+import arrow
 import pytest
 
 from invenio_circulation.errors import ItemNotAvailableError, \
@@ -17,8 +21,7 @@ from .helpers import SwappedConfig
 
 
 def test_created_to_item_on_loan_available_item_with_default_location(
-    loan_created, db, params,
-    mock_is_item_available_for_checkout
+    loan_created, params, mock_is_item_available_for_checkout
 ):
     """Test direct checkout on available item with default location."""
 
@@ -40,8 +43,7 @@ def test_created_to_item_on_loan_available_item_with_default_location(
 
 
 def test_created_to_item_on_loan_available_item_with_specified_location(
-    loan_created, db, params,
-    mock_is_item_available_for_checkout
+    loan_created, params, mock_is_item_available_for_checkout
 ):
     """Test direct checkout on available item with different location."""
 
@@ -64,8 +66,7 @@ def test_created_to_item_on_loan_available_item_with_specified_location(
 
 
 def test_created_to_item_on_loan_unavailable_item(
-    loan_created, db, params,
-    mock_ensure_item_is_available_for_checkout
+    loan_created, params, mock_ensure_item_is_available_for_checkout
 ):
     """Test direct checkout on unavailable item."""
 
@@ -86,8 +87,7 @@ def test_created_to_item_on_loan_unavailable_item(
 
 
 def test_created_to_item_on_loan_available_item_with_invalid_duration(
-    loan_created, db, params,
-    mock_is_item_available_for_checkout
+    loan_created, params, mock_is_item_available_for_checkout
 ):
     """Test direct checkout on available item with invalid duration."""
 
@@ -95,8 +95,8 @@ def test_created_to_item_on_loan_available_item_with_invalid_duration(
 
     assert loan_created["state"] == "CREATED"
 
-    params["start_date"] = "2018-01-01"
-    params["end_date"] = "2018-03-02"  # + 60 days
+    params["start_date"] = arrow.get("2018-01-01")
+    params["end_date"] = params["start_date"] + timedelta(days=60)
 
     with pytest.raises(TransitionConstraintsViolationError):
         with SwappedConfig(
@@ -109,8 +109,7 @@ def test_created_to_item_on_loan_available_item_with_invalid_duration(
 
 
 def test_created_to_item_on_loan_available_item_with_valid_duration(
-    loan_created, db, params,
-    mock_ensure_item_is_available_for_checkout
+    loan_created, params, mock_ensure_item_is_available_for_checkout
 ):
     """Test direct checkout on available item with valid duration."""
 
@@ -118,8 +117,9 @@ def test_created_to_item_on_loan_available_item_with_valid_duration(
 
     assert loan_created["state"] == "CREATED"
 
-    params["start_date"] = "2018-01-01"
-    params["end_date"] = "2018-03-01"  # + 59 days
+    params["transaction_date"] = arrow.utcnow()
+    params["start_date"] = arrow.get("2018-01-01")
+    params["end_date"] = params["start_date"] + timedelta(days=59)
 
     with SwappedConfig(
         "CIRCULATION_ITEM_LOCATION_RETRIEVER",
@@ -132,11 +132,11 @@ def test_created_to_item_on_loan_available_item_with_valid_duration(
     assert loan["state"] == "ITEM_ON_LOAN"
     assert loan["pickup_location_pid"] == "pickup_location_pid"
     assert loan["item_pid"] == "item_pid"
+    assert loan["transaction_date"] == params["transaction_date"].isoformat()
 
 
 def test_pending_to_item_on_loan_available_item(
-    loan_created, db, params,
-    mock_ensure_item_is_available_for_checkout
+    loan_created, params, mock_ensure_item_is_available_for_checkout
 ):
     """Test direct checkout on available item."""
 

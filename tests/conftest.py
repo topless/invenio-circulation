@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
@@ -25,8 +25,7 @@ from invenio_records_rest.utils import allow_all
 from invenio_search import current_search
 
 from invenio_circulation.api import Loan
-from invenio_circulation.errors import ItemNotAvailableError
-from invenio_circulation.permissions import loan_access
+from invenio_circulation.permissions import loan_read_access
 from invenio_circulation.pidstore.minters import loan_pid_minter
 
 from .helpers import create_loan, test_views_permissions_factory
@@ -93,7 +92,6 @@ def params():
         document_pid="document_pid",
         item_pid="item_pid",
         transaction_location_pid="loc_pid",
-        transaction_date="2018-02-01T09:30:00+02:00",
     )
 
 
@@ -202,7 +200,7 @@ def users(db, base_app):
         # Give role to user
         manager_role = Role(name="manager")
         db.session.add(
-            ActionRoles(action=loan_access.value, role=manager_role)
+            ActionRoles(action=loan_read_access.value, role=manager_role)
         )
         datastore.add_role_to_user(manager, manager_role)
     db.session.commit()

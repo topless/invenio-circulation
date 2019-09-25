@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2019 CERN.
+# Copyright (C) 2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
@@ -25,7 +26,7 @@ def _post(app, json_headers, loan, payload):
     return res, data
 
 
-def test_loan_replace_item(app, json_headers, params, indexed_loans):
+def test_loan_replace_item(app, json_headers, indexed_loans):
     """Test that no Loan is returned for the given Item if only pendings."""
     item_pid = "item_on_loan_2"
     loan = get_loan_for_item(item_pid)
@@ -38,9 +39,7 @@ def test_loan_replace_item(app, json_headers, params, indexed_loans):
     assert data["metadata"]["item"]["ref"] == loan["pid"]
 
 
-def test_loan_replace_item_inactive_state(
-    app, json_headers, params, indexed_loans
-):
+def test_loan_replace_item_inactive_state(app, json_headers, indexed_loans):
     """Test item replacement on a Loan that is not active."""
     for _pid, _loan in indexed_loans:
         if _loan["state"] == "ITEM_RETURNED":
@@ -55,9 +54,7 @@ def test_loan_replace_item_inactive_state(
     )
 
 
-def test_loan_replace_item_wo_params(
-    app, json_headers, params, indexed_loans
-):
+def test_loan_replace_item_wo_params(app, json_headers, indexed_loans):
     """Test that no Loan is returned for the given Item if only pendings."""
     item_pid = "item_on_loan_2"
     loan = get_loan_for_item(item_pid)
@@ -66,7 +63,7 @@ def test_loan_replace_item_wo_params(
     assert res.status_code == 400
 
 
-def test_loan_replace_item_wo_loan(app, json_headers, params, indexed_loans):
+def test_loan_replace_item_wo_loan(app, json_headers, indexed_loans):
     """Test that no Loan is returned for the given Item if only pendings."""
     loan = {"pid": "not_existing_one"}
     payload = {"item_pid": "item_on_loan_2"}

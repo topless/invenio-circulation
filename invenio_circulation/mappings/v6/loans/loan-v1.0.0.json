@@ -1,46 +1,67 @@
 {
   "mappings": {
     "loan-v1.0.0": {
+      "_source": {
+        "excludes": ["trigger"]
+      },
       "date_detection": false,
       "numeric_detection": false,
-      "_source": {
-        "excludes": [
-          "trigger"
-        ]
-      },
       "properties": {
+        "_created": {
+          "type": "date"
+        },
+        "_updated": {
+          "type": "date"
+        },
         "$schema": {
           "type": "keyword"
         },
-        "pid": {
+        "cancel_reason": {
           "type": "keyword"
         },
-        "transaction_date": {
-          "type": "date"
-        },
-        "patron_pid": {
-          "type": "keyword"
+        "delivery": {
+          "properties": {
+            "method": {
+              "type": "keyword"
+            }
+          },
+          "type": "object"
         },
         "document_pid": {
-          "type": "keyword"
-        },
-        "item_pid": {
           "type": "keyword"
         },
         "end_date": {
           "type": "date"
         },
-        "state": {
+        "extension_count": {
+          "type": "short"
+        },
+        "item_pid": {
           "type": "keyword"
         },
-        "start_date": {
-          "type": "date"
+        "patron_pid": {
+          "type": "keyword"
+        },
+        "pickup_location_pid": {
+          "type": "keyword"
+        },
+        "pid": {
+          "type": "keyword"
         },
         "request_expire_date": {
           "type": "date"
         },
-        "pickup_location_pid": {
+        "request_start_date": {
+          "type": "date"
+        },
+        "start_date": {
+          "type": "date"
+        },
+        "state": {
           "type": "keyword"
+        },
+        "transaction_date": {
+          "type": "date"
         },
         "transaction_location_pid": {
           "type": "keyword"
@@ -48,22 +69,8 @@
         "transaction_user_pid": {
           "type": "keyword"
         },
-        "cancel_reason": {
+        "trigger": {
           "type": "keyword"
-        },
-        "delivery": {
-          "type": "object",
-          "properties": {
-            "method": {
-              "type": "keyword"
-            }
-          }
-        },
-        "_created": {
-          "type": "date"
-        },
-        "_updated": {
-          "type": "date"
         }
       }
     }

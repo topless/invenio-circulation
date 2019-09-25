@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
@@ -16,7 +16,7 @@ from invenio_circulation.proxies import current_circulation
 from .helpers import SwappedConfig
 
 
-def test_validate_item_at_desk(loan_created, db, params):
+def test_validate_item_at_desk(loan_created, params):
     """Test transition from PENDING to ITEM_AT_DESK state."""
 
     loan = current_circulation.circulation.trigger(
@@ -27,7 +27,6 @@ def test_validate_item_at_desk(loan_created, db, params):
             pickup_location_pid="pickup_location_pid",
         )
     )
-    db.session.commit()
     assert loan["state"] == "PENDING"
 
     with SwappedConfig(
@@ -39,7 +38,7 @@ def test_validate_item_at_desk(loan_created, db, params):
         assert loan["state"] == "ITEM_AT_DESK"
 
 
-def test_validate_item_in_transit_pickup(loan_created, db, params):
+def test_validate_item_in_transit_pickup(loan_created, params):
     """Test transition from PENDING to ITEM_IN_TRANSIT_FOR_PICKUP state."""
 
     loan = current_circulation.circulation.trigger(
@@ -50,7 +49,6 @@ def test_validate_item_in_transit_pickup(loan_created, db, params):
             pickup_location_pid="pickup_location_pid",
         )
     )
-    db.session.commit()
     assert loan["state"] == "PENDING"
 
     with SwappedConfig(
@@ -63,9 +61,7 @@ def test_validate_item_in_transit_pickup(loan_created, db, params):
         assert loan["state"] == "ITEM_IN_TRANSIT_FOR_PICKUP"
 
 
-def test_checkout_without_item_attached(
-    loan_created, db, params
-):
+def test_checkout_without_item_attached(loan_created, params):
     """Test checkout on PENDING LOAN without item_pid attached."""
 
     assert loan_created["state"] == "CREATED"
@@ -90,9 +86,7 @@ def test_checkout_without_item_attached(
             )
 
 
-def test_checkout_with_different_pickup_location(
-    loan_created, db, params
-):
+def test_checkout_with_different_pickup_location(loan_created, params):
     """Test checkout with pickup location different than item location."""
 
     assert loan_created["state"] == "CREATED"
@@ -117,9 +111,7 @@ def test_checkout_with_different_pickup_location(
         assert loan["state"] == "ITEM_IN_TRANSIT_FOR_PICKUP"
 
 
-def test_checkout_with_same_pickup_location(
-    loan_created, db, params
-):
+def test_checkout_with_same_pickup_location(loan_created, params):
     """Test checkout with pickup location same as item location."""
 
     assert loan_created["state"] == "CREATED"
@@ -136,7 +128,6 @@ def test_checkout_with_same_pickup_location(
         assert loan["pickup_location_pid"] == "pickup_location_pid"
         assert loan["state"] == "PENDING"
 
-        # with pytest.raises(NoValidTransitionAvailableError):
         current_circulation.circulation.trigger(
             loan, **dict(params, trigger="next",
                          pickup_location_pid="pickup_location_pid")

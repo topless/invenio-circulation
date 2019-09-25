@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
-# Copyright (C) 2018 RERO.
+# Copyright (C) 2018-2019 CERN.
+# Copyright (C) 2018-2019 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
 """Tests for loan states."""
 
+from datetime import timedelta
+
+import arrow
 import pytest
 
 from invenio_circulation.errors import TransitionConstraintsViolationError
@@ -16,7 +19,7 @@ from invenio_circulation.proxies import current_circulation
 from .helpers import SwappedConfig
 
 
-def test_checkout_from_item_at_desk_valid_duration(loan_created, db, params):
+def test_checkout_from_item_at_desk_valid_duration(loan_created, params):
     """Test transition from ITEM_AT_DESK to ITEM_ON_LOAN state."""
     loan = current_circulation.circulation.trigger(
         loan_created,
@@ -26,7 +29,6 @@ def test_checkout_from_item_at_desk_valid_duration(loan_created, db, params):
             pickup_location_pid="pickup_location_pid",
         )
     )
-    db.session.commit()
     assert loan["state"] == "PENDING"
 
     with SwappedConfig(
@@ -44,7 +46,7 @@ def test_checkout_from_item_at_desk_valid_duration(loan_created, db, params):
         assert loan["state"] == "ITEM_ON_LOAN"
 
 
-def test_checkout_from_item_at_desk_invalid_duration(loan_created, db, params):
+def test_checkout_from_item_at_desk_invalid_duration(loan_created, params):
     """Test transition from ITEM_AT_DESK to ITEM_ON_LOAN state."""
     loan = current_circulation.circulation.trigger(
         loan_created,
@@ -54,7 +56,6 @@ def test_checkout_from_item_at_desk_invalid_duration(loan_created, db, params):
             pickup_location_pid="pickup_location_pid",
         )
     )
-    db.session.commit()
     assert loan["state"] == "PENDING"
 
     with SwappedConfig(
@@ -65,8 +66,10 @@ def test_checkout_from_item_at_desk_invalid_duration(loan_created, db, params):
         )
         assert loan["state"] == "ITEM_AT_DESK"
 
-        loan["start_date"] = "2018-01-01"
-        loan["end_date"] = "2018-03-02"  # + 60 days
+        now = arrow.utcnow()
+        end_date = now + timedelta(days=60)
+        loan["start_date"] = now.date().isoformat()
+        loan["end_date"] = end_date.date().isoformat()
 
         with pytest.raises(TransitionConstraintsViolationError):
             current_circulation.circulation.trigger(

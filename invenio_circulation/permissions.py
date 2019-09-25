@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018 CERN.
+# Copyright (C) 2018-2019 CERN.
 #
 # invenio-circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
@@ -17,7 +17,7 @@ from invenio_access import action_factory
 from invenio_access.permissions import Permission
 from invenio_records_rest.utils import allow_all
 
-loan_access = action_factory('loan-read-access')
+loan_read_access = action_factory('loan-read-access')
 
 
 def check_permission(permission):
@@ -35,25 +35,7 @@ def check_permission(permission):
 
 def has_read_loan_permission(*args, **kwargs):
     """Return permission to allow user to access loan."""
-    return Permission(loan_access)
-
-
-def loan_reader(*args, **kwargs):
-    """Return an object which by default allows to read the load object."""
-    def can(self):
-        """Return True if user can read the loan record."""
-        return has_read_loan_permission(*args, **kwargs).can()
-
-    return type('Allow', (), {'can': can})()
-
-
-def login_required(*args, **kwargs):
-    """Return an object that evaluates if the current user is authenticated."""
-    def can(self):
-        """Return True if user is authenticated."""
-        return current_user.is_authenticated
-
-    return type('LoginRequired', (), {'can': can})()
+    return Permission(loan_read_access)
 
 
 def views_permissions_factory(action):
@@ -67,7 +49,7 @@ def views_permissions_factory(action):
 def need_permissions(action):
     """View decorator to check permissions for the given action or abort.
 
-    :param permission: The permission based on the action.
+    :param action: The action to evaluate permissions.
     """
     def decorator_builder(f):
         @wraps(f)
