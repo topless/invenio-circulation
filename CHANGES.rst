@@ -7,6 +7,16 @@
 Changes
 =======
 
+Version 1.0.0a18 (released 2019-09-26)
+
+- handle date/time record fields as datetime object internally
+- add `request_start_date` field to loan schema
+- automatic assignement of item on request is now configurable
+- add marshmallow loader for REST endpoint
+- add support to ES7
+- drop support for Python 2
+- bugfixes
+
 Version 1.0.0a17 (released 2019-09-13)
 
 - add `delivery` object to the `loan` schema
