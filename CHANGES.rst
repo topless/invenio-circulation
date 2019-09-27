@@ -7,6 +7,12 @@
 Changes
 =======
 
+Version 1.0.0a19 (released 2019-09-27)
+
+- adds a JSON resolver for the patron of the loan
+- fixes deserialization bug on loan REST loader when a date/datetime
+  field is missing
+
 Version 1.0.0a18 (released 2019-09-26)
 
 - handle date/time record fields as datetime object internally
