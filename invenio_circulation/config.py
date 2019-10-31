@@ -21,7 +21,7 @@ from .transitions.transitions import CreatedToPending, \
     ItemOnLoanToItemInTransitHouse, ItemOnLoanToItemOnLoan, \
     ItemOnLoanToItemReturned, PendingToItemAtDesk, \
     PendingToItemInTransitPickup, ToCancelled, ToItemOnLoan
-from .utils import can_be_requested, document_exists, \
+from .utils import can_be_requested, document_exists, document_ref_builder, \
     get_default_extension_duration, get_default_extension_max_count, \
     get_default_loan_duration, is_loan_duration_valid, item_can_circulate, \
     item_exists, item_location_retriever, item_ref_builder, patron_exists, \
@@ -129,6 +129,15 @@ CIRCULATION_PATRON_RESOLVING_PATH = ""
 
 CIRCULATION_PATRON_RESOLVER_ENDPOINT = None
 """Flask endpoint function to handle the patron resolving."""
+
+CIRCULATION_DOCUMENT_REF_BUILDER = document_ref_builder
+"""Function that builds $ref to a `Document` record."""
+
+CIRCULATION_DOCUMENT_RESOLVING_PATH = ""
+"""Path to use for the resolving of the document ref."""
+
+CIRCULATION_DOCUMENT_RESOLVER_ENDPOINT = None
+"""Flask endpoint function to handle the document resolving."""
 
 CIRCULATION_POLICIES = dict(
     checkout=dict(

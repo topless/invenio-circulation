@@ -38,13 +38,19 @@ def can_be_requested(loan):
 
 # NOTE: Its on purpose `ref` and not `$ref` so it doesn't try to resolve
 def item_ref_builder(loan_pid):
-    """Return the $ref for item_pid."""
+    """Return the $ref for given loan_pid."""
     return {"ref": "{}".format(loan_pid)}
 
 
 # NOTE: Its on purpose `ref` and not `$ref` so it doesn't try to resolve
 def patron_ref_builder(loan_pid):
-    """Return the $ref for item_pid."""
+    """Return the $ref for given loan_pid."""
+    return {"ref": "{}".format(loan_pid)}
+
+
+# NOTE: Its on purpose `ref` and not `$ref` so it doesn't try to resolve
+def document_ref_builder(loan_pid):
+    """Return the $ref for given loan_pid."""
     return {"ref": "{}".format(loan_pid)}
 
 

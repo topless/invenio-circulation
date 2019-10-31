@@ -96,6 +96,7 @@ def test_persist_loan_parameters(
     params["pickup_location_pid"] = loan["pickup_location_pid"]
     params["item"] = {"ref": loan_pid.pid_value}
     params["patron"] = {"ref": loan_pid.pid_value}
+    params["document"] = {"ref": loan_pid.pid_value}
     params["$schema"] = "https://localhost:5000/schema/loans/loan-v1.0.0.json"
     params["transaction_date"] = loan["transaction_date"]
     assert loan == params

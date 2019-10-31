@@ -29,7 +29,7 @@ from invenio_circulation.permissions import loan_read_access
 from invenio_circulation.pidstore.minters import loan_pid_minter
 
 from .helpers import create_loan, test_views_permissions_factory
-from .utils import can_be_requested, document_exists, \
+from .utils import can_be_requested, document_exists, document_ref_builder, \
     get_default_extension_duration, get_default_extension_max_count, \
     get_default_loan_duration, is_loan_duration_valid, item_can_circulate, \
     item_exists, item_location_retriever, item_ref_builder, patron_exists, \
@@ -53,6 +53,7 @@ def app_config(app_config):
     app_config["CIRCULATION_PATRON_EXISTS"] = patron_exists
     app_config["CIRCULATION_ITEM_REF_BUILDER"] = item_ref_builder
     app_config["CIRCULATION_PATRON_REF_BUILDER"] = patron_ref_builder
+    app_config["CIRCULATION_DOCUMENT_REF_BUILDER"] = document_ref_builder
     app_config["CIRCULATION_ITEM_LOCATION_RETRIEVER"] = item_location_retriever
     app_config["CIRCULATION_DOCUMENT_RETRIEVER_FROM_ITEM"] = \
         lambda x: "document_pid"

@@ -138,6 +138,8 @@ setup(
         "invenio_records.jsonresolver": [
             "item_resolver = invenio_circulation.records.jsonresolver.item",
             "patron_resolver = invenio_circulation.records.jsonresolver.patron",
+            "document_resolver = invenio_circulation.records.jsonresolver.document",
+
         ],
     },
     extras_require=extras_require,

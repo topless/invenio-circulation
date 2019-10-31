@@ -99,6 +99,9 @@ app.config["CIRCULATION_ITEM_REF_BUILDER"] = lambda loan_pid: {
 app.config["CIRCULATION_PATRON_REF_BUILDER"] = lambda loan_pid: {
     "ref": "{}".format(loan_pid)
 }
+app.config["CIRCULATION_DOCUMENT_REF_BUILDER"] = lambda loan_pid: {
+    "ref": "{}".format(loan_pid)
+}
 
 
 @app.cli.group()

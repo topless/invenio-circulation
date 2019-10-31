@@ -23,6 +23,14 @@
       "title": "Document ID",
       "type": "string"
     },
+    "document": {
+      "properties": {
+        "$ref": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "end_date": {
       "format": "date",
       "title": "Transaction end date",
