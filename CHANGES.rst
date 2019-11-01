@@ -7,6 +7,11 @@
 Changes
 =======
 
+Version 1.0.0a20 (released 2019-11-01)
+
+- adds a JSON resolver for the document of the loan
+
+
 Version 1.0.0a19 (released 2019-09-27)
 
 - adds a JSON resolver for the patron of the loan
