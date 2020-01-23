@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (C) 2018-2019 CERN.
-# Copyright (C) 2018-2019 RERO.
+# Copyright (C) 2018-2020 CERN.
+# Copyright (C) 2018-2020 RERO.
 #
 # Invenio-Circulation is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
@@ -77,8 +77,8 @@ install_requires = [
     'arrow>=0.15.0',
     'Flask-BabelEx>=0.9.3',
     'invenio-base>=1.0.1',
-    'invenio-access>=1.0.1',
-    'invenio-logging>=1.0.0',
+    'invenio-access>=1.3.1',
+    'invenio-logging>=1.2.1',
     'invenio-pidstore>=1.0.0',
     'invenio-records-rest>=1.6.1',
     'invenio-jsonschemas>=1.0.0',
@@ -119,7 +119,6 @@ setup(
             'invenio_circulation_loan_actions = '
             'invenio_circulation.views:create_loan_actions_blueprint',
             'invenio_circulation_loan_for_item = '
-            'invenio_circulation.views:create_loan_for_item_blueprint',
             'invenio_circulation_loan_replace_item = '
             'invenio_circulation.views:create_loan_replace_item_blueprint',
 
