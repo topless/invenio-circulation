@@ -7,6 +7,14 @@
 Changes
 =======
 
+Version 1.0.0a21 (released 2020-01-23)
+
+
+- introduces `pid_type` for `item_pid` to uniquely identify an Item record
+- changes methods that were expecting `item_pid`
+- removed unused view circulation/items to retrieve the item from the loan
+
+
 Version 1.0.0a20 (released 2019-11-01)
 
 - adds a JSON resolver for the document of the loan
