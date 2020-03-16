@@ -9,6 +9,7 @@
 """Circulation API."""
 
 from datetime import timedelta
+from sys import maxsize
 
 
 def patron_exists(patron_pid):
@@ -71,7 +72,7 @@ def get_default_extension_duration(loan):
 
 def get_default_extension_max_count(loan):
     """Return a default extensions max count."""
-    return float("inf")
+    return maxsize
 
 
 def is_loan_duration_valid(loan):
